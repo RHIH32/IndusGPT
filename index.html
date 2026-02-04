@@ -1240,38 +1240,46 @@ micButton.addEventListener('click', () => {
 
       // --- Typewriter Effect Helper ---
 async function typeWriter(element, markdownText) {
-    // 1. Pehle Markdown ko HTML mein badlo
     let htmlContent = marked.parse(markdownText);
-
     let i = 0;
     let isTag = false;
     let currentString = "";
 
-    // 2. Loop jo HTML Tags ko skip karke sirf text type karega
+    const chatContainer = document.getElementById("chat-container");
+
     while (i < htmlContent.length) {
         let char = htmlContent.charAt(i);
 
-        if (char === '<') isTag = true;  // Tag shuru
+        if (char === '<') isTag = true;
         currentString += char;
-        if (char === '>') isTag = false; // Tag khatam
+        if (char === '>') isTag = false;
 
         if (isTag) {
             i++;
-            continue; // Agar tag hai to turant jodo, ruko mat
+            continue;
         }
 
         element.innerHTML = currentString;
         
-        // Auto Scroll
-        const chatContainer = document.getElementById("chat-container");
-        if(chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+        // --- 🟢 SMART AUTO-SCROLL LOGIC ---
+        if (chatContainer) {
+            /* Logic: 
+               ScrollHeight - ScrollTop agar ClientHeight ke barabar hai, 
+               matlab user bottom par hai. Humne 50px ka margin diya hai 
+               taki user ko thoda comfort mile.
+            */
+            const threshold = 50; 
+            const isUserAtBottom = (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight) <= threshold;
 
-        // Typing Speed (10ms)
+            if (isUserAtBottom) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
         await new Promise(resolve => setTimeout(resolve, 10));
         i++;
     }
 
-    // 3. Last mein Code Highlight karo
     element.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightElement(block);
     });
