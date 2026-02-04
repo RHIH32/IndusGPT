@@ -1249,7 +1249,6 @@ async function typeWriter(element, markdownText) {
 
     while (i < htmlContent.length) {
         let char = htmlContent.charAt(i);
-
         if (char === '<') isTag = true;
         currentString += char;
         if (char === '>') isTag = false;
@@ -1261,18 +1260,17 @@ async function typeWriter(element, markdownText) {
 
         element.innerHTML = currentString;
         
-        // --- 🟢 SMART AUTO-SCROLL LOGIC ---
+        // --- 🟢 UPDATED SMART SCROLL ---
         if (chatContainer) {
-            /* Logic: 
-               ScrollHeight - ScrollTop agar ClientHeight ke barabar hai, 
-               matlab user bottom par hai. Humne 50px ka margin diya hai 
-               taki user ko thoda comfort mile.
-            */
-            const threshold = 50; 
-            const isUserAtBottom = (chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight) <= threshold;
-
-            if (isUserAtBottom) {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+            // Mobile ke liye 100px ka margin behtar kaam karta hai
+            const threshold = 100; 
+            const distanceFromBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+            
+            if (distanceFromBottom <= threshold) {
+                // requestAnimationFrame browser ko batata hai ki UI update ke turant baad scroll kare
+                requestAnimationFrame(() => {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                });
             }
         }
 
@@ -1284,7 +1282,7 @@ async function typeWriter(element, markdownText) {
         hljs.highlightElement(block);
     });
 }
-
+        
 // ✅ UPDATED addMessageToUI (Full Width Code Fix)
 // ✅ UPDATED addMessageToUI (With Code Copy Button)
 async function addMessageToUI(sender, message, animate = false) {
