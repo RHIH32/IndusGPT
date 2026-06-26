@@ -1,137 +1,136 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const Parser = require('rss-parser'); // RSS News ke liye
+const admin = require('firebase-admin');
 require('dotenv').config();
 
-// --- Firebase Admin Setup ---
-const admin = require('firebase-admin');
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// --- 1. Firebase Setup ---
+try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log("✅ Firebase Admin initialized.");
+    }
+} catch (error) {
+    console.warn("⚠️ Firebase Init Warning: .env check karein.");
+}
+const db = admin.apps.length ? admin.firestore() : null;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
-
+// --- 2. Server Config ---
 const app = express();
-const parser = new Parser(); 
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
-// --- API Keys ---
+// --- 3. API Key Logic ---
 const GEMINI_API_KEYS = process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',') : [];
 let currentKeyIndex = 0;
 
 function getNextApiKey() {
-    if (GEMINI_API_KEYS.length === 0) throw new Error("No API keys found.");
-    const key = GEMINI_API_KEYS[currentKeyIndex];
+    if (GEMINI_API_KEYS.length === 0) throw new Error("No Gemini API keys found in .env");
+    // .trim() add kiya hai taaki extra space problem na kare
+    const key = GEMINI_API_KEYS[currentKeyIndex].trim();
     currentKeyIndex = (currentKeyIndex + 1) % GEMINI_API_KEYS.length;
     return key;
 }
 
-// 🛠️ HELPER: System Time
-function getSystemTime() {
-    const now = new Date();
-    return now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' });
-}
-
-// 🛠️ HELPER: Google News RSS (Text Only - No Links)
-async function getGoogleNews() {
-    try {
-        const feed = await parser.parseURL("https://news.google.com/rss?ceid=IN:en&hl=en-IN&gl=IN");
-        return feed.items.slice(0, 5).map(item => `- ${item.title}`).join("\n");
-    } catch (e) { return null; }
-}
-
-// === MAIN API ===
+// ============================================================
+// === 4. SMART GENERATE API (With REAL Errors) ===
+// ============================================================
 app.post('/api/generate', async (req, res) => {
     try {
         const { contents, systemInstruction } = req.body;
-        if (!contents) return res.status(400).json({ error: 'No contents' });
+        if (!contents) return res.status(400).json({ error: 'No contents found' });
 
-        const lastMessage = contents[contents.length - 1]?.parts[0]?.text?.toLowerCase() || "";
         const currentApiKey = getNextApiKey();
-        let finalSystemInstruction = systemInstruction?.parts[0]?.text || "";
         
-        let tools = []; // Default: No Tools (No Google Search Button)
-        let extraContext = "";
+        // Sirf latest 1.5 models use karenge, ye sabse stable hain
+        const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro'];
 
-        // --- 1. 🕒 TIME & DATE (Server Text) ---
-        if (lastMessage.includes("time") || lastMessage.includes("samay") || lastMessage.includes("date") || lastMessage.includes("tarikh")) {
-            console.log("🕒 Time Injection");
-            extraContext += `\n[SYSTEM UPDATE]: Current Date/Time in India is: ${getSystemTime()}. User ko ye time batao.`;
-        }
+        let lastErrorMsg = null;
+        let textResponse = null;
 
-        // --- 2. 📰 NEWS (RSS Text - 100% Safe from Links) ---
-        else if (lastMessage.includes("news") || lastMessage.includes("khabar") || lastMessage.includes("samachar")) {
-            console.log("📰 RSS News Injection");
-            const newsData = await getGoogleNews();
-            if (newsData) {
-                // Hum AI ko NEWS text de rahe hain, Link nahi.
-                // AI isse padhega jaise ye uski memory ho.
-                extraContext += `\n[LATEST NEWS SUMMARY]:\n${newsData}\n(In khabron ko padhkar user ko Hinglish mein sunao. Koi link mat dena).`;
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`🔄 Trying model: ${modelName}...`);
+                
+                // v1beta use kar rahe hain kyunki ye System Instructions ko best support karta hai
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentApiKey}`;
+
+                const payload = { contents };
+                if (systemInstruction) {
+                    payload.systemInstruction = systemInstruction;
+                }
+
+                const response = await axios.post(apiUrl, payload);
+                
+                textResponse = response.data.candidates[0].content.parts[0].text;
+                console.log(`✅ Success with ${modelName}!`);
+                break; // Success hone par loop tod do
+
+            } catch (error) {
+                // ASLI ERROR NIKAL RAHE HAIN YAHAN SE
+                lastErrorMsg = error.response?.data?.error?.message || error.message;
+                console.error(`❌ Failed with ${modelName}:`, lastErrorMsg);
             }
         }
 
-        // --- 3. 🏏 CRICKET/WEATHER (Google Search - Hidden) ---
-        // Agar user Cricket/Weather puche, tabhi Google Search Tool ON karenge.
-        // Lekin Frontend ka prompt (Index.html) link ko rok dega.
-        else if (lastMessage.includes("weather") || lastMessage.includes("mausam") || lastMessage.includes("score") || lastMessage.includes("match")) {
-            console.log("⚠️ Using Google Search for Live Data");
-            tools = [{ googleSearch: {} }];
+        if (textResponse) {
+            res.json({ text: textResponse });
+        } else {
+            // AGAR FAIL HUA, TOH ANDROID KO ASLI BIMAARI BATAO
+            res.status(500).json({ error: lastErrorMsg || 'All AI models failed' });
         }
-
-        // --- 4. 🖼️ IMAGE GENERATION (Fake Response) ---
-        if (lastMessage.includes("draw") || lastMessage.includes("create") || lastMessage.includes("banao")) {
-             const fakeResponse = JSON.stringify({
-                action: "generate_image",
-                prompt: lastMessage,
-                response: "Bilkul! Tasveer bana raha hoon... 🎨"
-            });
-            return res.json({ text: fakeResponse });
-        }
-
-        // --- FINAL PROMPT ASSEMBLY ---
-        if (extraContext) {
-            finalSystemInstruction += extraContext;
-        }
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;           
-        const payload = { 
-            contents, 
-            systemInstruction: { parts: [{ text: finalSystemInstruction }] },
-            ...(tools.length > 0 && { tools: tools }) 
-        };
-        
-        const response = await axios.post(apiUrl, payload);
-        const candidate = response.data.candidates[0];
-        let textResponse = candidate.content?.parts?.map(p => p.text || "").join("") || "";
-
-        res.json({ text: textResponse });
 
     } catch (error) {
-        console.error('Error:', error.message);
-        res.status(500).json({ error: 'AI Error' });
+        console.error('FATAL ERROR:', error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Image API (Stable)
+// ============================================================
+// === 5. IMAGE GENERATION API ===
+// ============================================================
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
-        const seed = Math.floor(Math.random() * 10000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1024&height=1024&nologo=true&model=flux`; // Model flux kar diya better quality ke liye
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
-        const base64Image = Buffer.from(response.data, 'binary').toString('base64');
-        res.json({ base64Image, imageUrl });
+        if (!prompt) return res.status(400).json({ error: "Prompt missing" });
+
+        const HF_API_KEY = process.env.HF_API_KEY; 
+        if (!HF_API_KEY) return res.status(500).json({ error: "Server par Image API Key set nahi hai." });
+
+        console.log("🎨 Generating image for:", prompt);
+
+        const response = await axios.post(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            { inputs: prompt },
+            {
+                headers: { 
+                    Authorization: `Bearer ${HF_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                responseType: "arraybuffer"
+            }
+        );
+
+        const base64Image = Buffer.from(response.data, "binary").toString("base64");
+        res.json({ base64Image: base64Image });
+
     } catch (error) {
-        res.status(500).json({ error: "Image Failed" });
+        // Asli Image error nikalna
+        const errorMsg = error.response?.data ? Buffer.from(error.response.data).toString() : error.message;
+        console.error("Image Gen Error:", errorMsg);
+        res.status(500).json({ error: "Image error: " + errorMsg });
     }
 });
 
+// --- 6. Start Server ---
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
+
+app.listen(port, () => {
+    console.log(`🚀 Server running at http://localhost:${port}`);
+});
