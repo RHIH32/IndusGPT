@@ -57,8 +57,9 @@ const modelsToTry = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];       
                 console.log(`🔄 Trying model: ${modelName}...`);
                 
                 // v1beta use kar rahe hain kyunki ye System Instructions ko best support karta hai
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentApiKey}`;
+const version = (modelName === 'gemini-pro' || modelName === 'gemini-1.5-flash') ? 'v1' : 'v1beta';
 
+                const apiUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${currentApiKey}`;
                 const payload = { contents };
                 if (systemInstruction) {
                     payload.systemInstruction = systemInstruction;
