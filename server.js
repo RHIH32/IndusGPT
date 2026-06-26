@@ -44,8 +44,7 @@ app.post('/api/generate', async (req, res) => {
         const apiKey = getApiKey();
         
         // 🚀 OFFICIAL STABLE ENDPOINT (v1) AUR LATEST MODEL (gemini-1.5-flash) 🚀
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;        
         const payload = { contents };
         if (systemInstruction) {
             payload.systemInstruction = systemInstruction;
