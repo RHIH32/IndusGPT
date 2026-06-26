@@ -38,7 +38,7 @@ function getNextApiKey() {
 }
 
 // ============================================================
-// === 4. SMART GENERATE API (100% FIXED & BULLETPROOF) ===
+// === 4. SMART GENERATE API (FINAL BULLETPROOF) ===
 // ============================================================
 app.post('/api/generate', async (req, res) => {
     try {
@@ -47,10 +47,11 @@ app.post('/api/generate', async (req, res) => {
 
         const currentApiKey = getNextApiKey();
         
-        // 🚀 YAHAN CHANGE KIYA HAI: '-latest' laga diya aur sirf naye models rakhe hain
+        // 🚀 CHANGE: Sabse stable universally supported models
         const modelsToTry = [
-            'gemini-1.5-flash-latest', 
-            'gemini-1.5-pro-latest'
+            'gemini-1.5-flash', 
+            'gemini-1.5-pro',
+            'gemini-pro' // <-- Aakhiri hathiyar (Ye kabhi fail nahi hota)
         ]; 
         
         let lastErrorMsg = null;
@@ -60,12 +61,12 @@ app.post('/api/generate', async (req, res) => {
             try {
                 console.log(`🔄 Trying model: ${modelName}...`);
                 
-                // 🚀 YAHAN BHI CHANGE KIYA HAI: Sab kuch hamesha v1beta par chalega
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentApiKey}`;
                 
                 const payload = { contents };
-                // System Instruction direct bhej rahe hain
-                if (systemInstruction) {
+                
+                // gemini-pro (purana model) system instruction ko support nahi karta
+                if (modelName !== 'gemini-pro' && systemInstruction) {
                     payload.systemInstruction = systemInstruction;
                 }
 
@@ -73,10 +74,9 @@ app.post('/api/generate', async (req, res) => {
                 
                 textResponse = response.data.candidates[0].content.parts[0].text;
                 console.log(`✅ Success with ${modelName}!`);
-                break; // Ek model chal gaya toh aage mat jao
+                break; // Ek model chal gaya toh loop tod do
 
             } catch (error) {
-                // Asli Error nikal kar console me dikhao
                 lastErrorMsg = error.response?.data?.error?.message || error.message;
                 console.error(`❌ Failed with ${modelName}:`, lastErrorMsg);
             }
