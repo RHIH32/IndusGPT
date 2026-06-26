@@ -26,71 +26,47 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
-// --- 3. API Key Logic ---
-const GEMINI_API_KEYS = process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',') : [];
-let currentKeyIndex = 0;
-
-function getNextApiKey() {
-    if (GEMINI_API_KEYS.length === 0) throw new Error("No Gemini API keys found in .env");
-    const key = GEMINI_API_KEYS[currentKeyIndex].trim();
-    currentKeyIndex = (currentKeyIndex + 1) % GEMINI_API_KEYS.length;
-    return key;
+// API Key nikalne ka simple tarika
+function getApiKey() {
+    const keys = process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',') : [];
+    if (keys.length === 0) throw new Error("No Gemini API keys found in .env");
+    return keys[0].trim(); // Hum sirf pehli key use karenge simplicity ke liye
 }
 
 // ============================================================
-// === 4. SMART GENERATE API (FINAL BULLETPROOF) ===
+// === 4. SMART GENERATE API (100% OFFICIAL V1 ENDPOINT) ===
 // ============================================================
 app.post('/api/generate', async (req, res) => {
     try {
         const { contents, systemInstruction } = req.body;
         if (!contents) return res.status(400).json({ error: 'No contents found' });
 
-        const currentApiKey = getNextApiKey();
+        const apiKey = getApiKey();
         
-        // 🚀 CHANGE: Sabse stable universally supported models
-        const modelsToTry = [
-            'gemini-1.5-flash', 
-            'gemini-1.5-pro',
-            'gemini-pro' // <-- Aakhiri hathiyar (Ye kabhi fail nahi hota)
-        ]; 
+        // 🚀 OFFICIAL STABLE ENDPOINT (v1) AUR LATEST MODEL (gemini-1.5-flash) 🚀
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
-        let lastErrorMsg = null;
-        let textResponse = null;
-
-        for (const modelName of modelsToTry) {
-            try {
-                console.log(`🔄 Trying model: ${modelName}...`);
-                
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentApiKey}`;
-                
-                const payload = { contents };
-                
-                // gemini-pro (purana model) system instruction ko support nahi karta
-                if (modelName !== 'gemini-pro' && systemInstruction) {
-                    payload.systemInstruction = systemInstruction;
-                }
-
-                const response = await axios.post(apiUrl, payload);
-                
-                textResponse = response.data.candidates[0].content.parts[0].text;
-                console.log(`✅ Success with ${modelName}!`);
-                break; // Ek model chal gaya toh loop tod do
-
-            } catch (error) {
-                lastErrorMsg = error.response?.data?.error?.message || error.message;
-                console.error(`❌ Failed with ${modelName}:`, lastErrorMsg);
-            }
+        const payload = { contents };
+        if (systemInstruction) {
+            payload.systemInstruction = systemInstruction;
         }
 
-        if (textResponse) {
-            res.json({ text: textResponse });
-        } else {
-            res.status(500).json({ error: lastErrorMsg || 'All AI models failed' });
-        }
+        console.log(`🔄 Sending request to Gemini 1.5 Flash...`);
+
+        const response = await axios.post(apiUrl, payload, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const textResponse = response.data.candidates[0].content.parts[0].text;
+        console.log(`✅ Success!`);
+        
+        res.json({ text: textResponse });
 
     } catch (error) {
-        console.error('FATAL ERROR:', error.message);
-        res.status(500).json({ error: error.message });
+        // Agar ab galti aayi toh EXACT Google ka error aapki phone screen par aayega
+        const errorMsg = error.response?.data?.error?.message || error.message;
+        console.error(`❌ Gemini API Error:`, errorMsg);
+        res.status(500).json({ error: `Gemini API Error: ${errorMsg}` });
     }
 });
 
