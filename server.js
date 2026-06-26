@@ -61,14 +61,22 @@ app.post('/api/generate', async (req, res) => {
             try {
                 console.log(`🔄 Trying model: ${modelName}...`);
                 
-                // v1beta use kar rahe hain kyunki ye System Instructions ko best support karta hai
-const version = (modelName === 'gemini-pro' || modelName === 'gemini-1.5-flash') ? 'v1' : 'v1beta';
+          // URL versioning logic (Pro ke liye v1, baaki ke liye v1beta)
+
+                const version = (modelName === 'gemini-pro' || modelName === 'gemini-1.5-flash') ? 'v1' : 'v1beta';
 
                 const apiUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${currentApiKey}`;
+                // Payload logic: Purane models systemInstruction support nahi karte
+
                 const payload = { contents };
-                if (systemInstruction) {
+
+                if (modelName !== 'gemini-pro' && systemInstruction) {
+
                     payload.systemInstruction = systemInstruction;
+
                 }
+
+
 
                 const response = await axios.post(apiUrl, payload);
                 
