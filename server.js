@@ -32,14 +32,13 @@ let currentKeyIndex = 0;
 
 function getNextApiKey() {
     if (GEMINI_API_KEYS.length === 0) throw new Error("No Gemini API keys found in .env");
-    // .trim() add kiya hai taaki extra space problem na kare
     const key = GEMINI_API_KEYS[currentKeyIndex].trim();
     currentKeyIndex = (currentKeyIndex + 1) % GEMINI_API_KEYS.length;
     return key;
 }
 
 // ============================================================
-// === 4. SMART GENERATE API (With REAL Errors) ===
+// === 4. SMART GENERATE API (100% FIXED & BULLETPROOF) ===
 // ============================================================
 app.post('/api/generate', async (req, res) => {
     try {
@@ -48,11 +47,11 @@ app.post('/api/generate', async (req, res) => {
 
         const currentApiKey = getNextApiKey();
         
-         const modelsToTry = [
-            'gemini-1.5-flash',       // Option 1: Sabse Fast & New
-            'gemini-1.5-pro',         // Option 2: Sabse Smart
-            'gemini-pro'              // Option 3: Purana par Bharosemand
-           ]; 
+        // 🚀 YAHAN CHANGE KIYA HAI: '-latest' laga diya aur sirf naye models rakhe hain
+        const modelsToTry = [
+            'gemini-1.5-flash-latest', 
+            'gemini-1.5-pro-latest'
+        ]; 
         
         let lastErrorMsg = null;
         let textResponse = null;
@@ -61,31 +60,23 @@ app.post('/api/generate', async (req, res) => {
             try {
                 console.log(`🔄 Trying model: ${modelName}...`);
                 
-          // URL versioning logic (Pro ke liye v1, baaki ke liye v1beta)
-
-                const version = (modelName === 'gemini-pro' || modelName === 'gemini-1.5-flash') ? 'v1' : 'v1beta';
-
-                const apiUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${currentApiKey}`;
-                // Payload logic: Purane models systemInstruction support nahi karte
-
+                // 🚀 YAHAN BHI CHANGE KIYA HAI: Sab kuch hamesha v1beta par chalega
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentApiKey}`;
+                
                 const payload = { contents };
-
-                if (modelName !== 'gemini-pro' && systemInstruction) {
-
+                // System Instruction direct bhej rahe hain
+                if (systemInstruction) {
                     payload.systemInstruction = systemInstruction;
-
                 }
-
-
 
                 const response = await axios.post(apiUrl, payload);
                 
                 textResponse = response.data.candidates[0].content.parts[0].text;
                 console.log(`✅ Success with ${modelName}!`);
-                break; // Success hone par loop tod do
+                break; // Ek model chal gaya toh aage mat jao
 
             } catch (error) {
-                // ASLI ERROR NIKAL RAHE HAIN YAHAN SE
+                // Asli Error nikal kar console me dikhao
                 lastErrorMsg = error.response?.data?.error?.message || error.message;
                 console.error(`❌ Failed with ${modelName}:`, lastErrorMsg);
             }
@@ -94,7 +85,6 @@ app.post('/api/generate', async (req, res) => {
         if (textResponse) {
             res.json({ text: textResponse });
         } else {
-            // AGAR FAIL HUA, TOH ANDROID KO ASLI BIMAARI BATAO
             res.status(500).json({ error: lastErrorMsg || 'All AI models failed' });
         }
 
@@ -133,7 +123,6 @@ app.post('/api/generate-image', async (req, res) => {
         res.json({ base64Image: base64Image });
 
     } catch (error) {
-        // Asli Image error nikalna
         const errorMsg = error.response?.data ? Buffer.from(error.response.data).toString() : error.message;
         console.error("Image Gen Error:", errorMsg);
         res.status(500).json({ error: "Image error: " + errorMsg });
