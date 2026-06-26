@@ -1,40 +1,23 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const admin = require('firebase-admin');
 require('dotenv').config();
 
-// --- 1. Firebase Setup ---
-try {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
-        console.log("✅ Firebase Admin initialized.");
-    }
-} catch (error) {
-    console.warn("⚠️ Firebase Init Warning: .env check karein.");
-}
-const db = admin.apps.length ? admin.firestore() : null;
-
-// --- 2. Server Config ---
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(__dirname));
 
-// API Key nikalne ka simple tarika
+// API Key nikalne ka original simple tarika
 function getApiKey() {
     const keys = process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',') : [];
-    if (keys.length === 0) throw new Error("No Gemini API keys found in .env");
-    return keys[0].trim(); // Hum sirf pehli key use karenge simplicity ke liye
+    if (keys.length === 0) throw new Error("No API keys found in .env");
+    return keys[0].trim();
 }
 
 // ============================================================
-// === 4. SMART GENERATE API (100% OFFICIAL V1 ENDPOINT) ===
+// === SMART GENERATE API (ORIGINAL WEB WALA V1BETA) ===
 // ============================================================
 app.post('/api/generate', async (req, res) => {
     try {
@@ -43,45 +26,35 @@ app.post('/api/generate', async (req, res) => {
 
         const apiKey = getApiKey();
         
-        // 🚀 OFFICIAL STABLE ENDPOINT (v1) AUR LATEST MODEL (gemini-1.5-flash) 🚀
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;        
+        // 🚀 ORIGINAL V1BETA URL (Jo System Instruction ko 100% support karta hai) 🚀
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        
         const payload = { contents };
         if (systemInstruction) {
             payload.systemInstruction = systemInstruction;
         }
 
-        console.log(`🔄 Sending request to Gemini 1.5 Flash...`);
-
         const response = await axios.post(apiUrl, payload, {
             headers: { 'Content-Type': 'application/json' }
         });
         
-        const textResponse = response.data.candidates[0].content.parts[0].text;
-        console.log(`✅ Success!`);
-        
-        res.json({ text: textResponse });
+        res.json({ text: response.data.candidates[0].content.parts[0].text });
 
     } catch (error) {
-        // Agar ab galti aayi toh EXACT Google ka error aapki phone screen par aayega
         const errorMsg = error.response?.data?.error?.message || error.message;
         console.error(`❌ Gemini API Error:`, errorMsg);
-        res.status(500).json({ error: `Gemini API Error: ${errorMsg}` });
+        res.status(500).json({ error: errorMsg }); // Android ko exact error batayega
     }
 });
 
 // ============================================================
-// === 5. IMAGE GENERATION API ===
+// === IMAGE GENERATION API (ORIGINAL) ===
 // ============================================================
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: "Prompt missing" });
-
         const HF_API_KEY = process.env.HF_API_KEY; 
-        if (!HF_API_KEY) return res.status(500).json({ error: "Server par Image API Key set nahi hai." });
-
-        console.log("🎨 Generating image for:", prompt);
-
+        
         const response = await axios.post(
             "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
             { inputs: prompt },
@@ -98,14 +71,9 @@ app.post('/api/generate-image', async (req, res) => {
         res.json({ base64Image: base64Image });
 
     } catch (error) {
-        const errorMsg = error.response?.data ? Buffer.from(error.response.data).toString() : error.message;
-        console.error("Image Gen Error:", errorMsg);
-        res.status(500).json({ error: "Image error: " + errorMsg });
+        res.status(500).json({ error: "Image error" });
     }
 });
-
-// --- 6. Start Server ---
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 app.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
