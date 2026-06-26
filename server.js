@@ -48,8 +48,13 @@ app.post('/api/generate', async (req, res) => {
 
         const currentApiKey = getNextApiKey();
         
-        // Sirf latest 1.5 models use karenge, ye sabse stable hain
-const modelsToTry = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];        let lastErrorMsg = null;
+         const modelsToTry = [
+            'gemini-1.5-flash',       // Option 1: Sabse Fast & New
+            'gemini-1.5-pro',         // Option 2: Sabse Smart
+            'gemini-pro'              // Option 3: Purana par Bharosemand
+           ]; 
+        
+        let lastErrorMsg = null;
         let textResponse = null;
 
         for (const modelName of modelsToTry) {
