@@ -18,7 +18,20 @@
 
     <style>
         /* Code Block Style */
-        
+
+        /* Jab tak poori site load na ho, screen ko hide rakho */
+/* 1. App aur Login container ko shuru mein transparent rakho */
+        #login-screen, #app-container {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* 2. Jab JS is class ko add karega, tab makkhan ki tarah screen dikhegi */
+        .loaded-ui {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
         /* ... Baaki CSS wahi rahegi ... */
         .ai-message { white-space: pre-wrap; }
         :root { --bg-primary: #000000; --bg-secondary: #121212; --bg-tertiary: #27272a; --text-primary: #ededed; --text-secondary: #a1a1aa; --border-color: #333333; --header-bg: rgba(0, 0, 0, 0.8); }
@@ -219,6 +232,21 @@ code {
             box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.1) !important;
         }
     </style>
+
+  <script>
+        // DOMContentLoaded zyada fast hai, ye "window load" ka wait nahi karta
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tailwind lagne ke liye chota sa pause (50 miliseconds ka)
+            setTimeout(() => {
+                const loginScreen = document.getElementById('login-screen');
+                const appContainer = document.getElementById('app-container');
+                
+                // Dono par 'loaded-ui' class add kardi taaki fade in effect aaye
+                if(loginScreen) loginScreen.classList.add('loaded-ui');
+                if(appContainer) appContainer.classList.add('loaded-ui');
+            }, 50); 
+        });
+    </script>
 </head>
 <body class="h-screen">
 
