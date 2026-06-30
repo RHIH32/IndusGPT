@@ -200,12 +200,14 @@ code {
 
         /* 2. Footer (Neeche wale hisse) ko hawa mein tairayein */
         .footer {
-            position: absolute !important;
+            position: fixed !important; /* YAHAN ABSOLUTE KI JAGAH FIXED KIYA HAI */
             bottom: 0 !important;
             left: 0 !important;
-            background: transparent !important; /* Purana background hata diya */
-            padding-bottom: 20px !important; /* Zameen se thoda upar */
-            pointer-events: none; /* Taaki dabbe ke aaspas chat par touch kaam kare */
+            width: 100% !important;     /* YEH LINE ADD KI HAI */
+            z-index: 50 !important;     /* YEH LINE ADD KI HAI */
+            background: transparent !important;
+            padding-bottom: 20px !important;
+            pointer-events: none; 
         }
         
         /* Form ke andar click kaam kare uske liye */
