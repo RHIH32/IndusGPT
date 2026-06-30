@@ -631,6 +631,64 @@ window.onVoiceResult = function(text) {
     }
 };
 
+        // ==========================================================
+// 🚀 THE ULTIMATE VOICE SHOPPING ASSISTANT (Screen-Aware)
+// ==========================================================
+
+window.onScreenCaptured = async function(base64Data) {
+    console.log("Android se live screen capture mil gaya!");
+
+    let cleanBase64 = base64Data;
+    if (base64Data.includes(',')) {
+        cleanBase64 = base64Data.split(',')[1];
+    }
+
+    // 1. AI ko ekdum strict command dena hai ki usko ek 'Insaan' ki tarah bolna hai
+    const commandText = "Is screenshot mein dikh rahe e-commerce product ko analyze karo. Ek chhota aur direct Hindi voice assistant ki tarah jawab do ki kya yeh product lene layayak hai? Sirf 2-3 line mein apna final opinion batao (Jaise: 'Bhai, iske reviews acche hain, le sakte ho' ya 'Nahi, iska price zyada lag raha hai, koi aur dekho'). Koi bhi markdown, star (*), ya list mat use karna kyunki yeh text seedha voice mein play hoga.";
+
+    // 2. User ko UI mein dikhane ke liye (optional)
+    addMessageToUI('user', "Floating Button: Is product ka review do...");
+    
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) typingIndicator.classList.remove('hidden');
+
+    // 3. Android ko bolo ki wo user ko bol kar bataye ki wo check kar raha hai
+    if (window.Android && typeof window.Android.speak === 'function') {
+        window.Android.speak("Main product check kar raha hoon, ek second dijiye.");
+    }
+
+    const fileData = {
+        base64: cleanBase64,
+        type: 'image/jpeg',
+        name: 'live_screenshot.jpg'
+    };
+
+    try {
+        // 4. API ko request bhejo
+        const aiResponse = await getAIResponse(commandText, fileData);
+        
+        // 5. Chat History mein message add karo 
+        addMessageToHistory('model', aiResponse);
+        
+        // Chat UI mein dikhao (Animation ke sath)
+        handleAIResponse(aiResponse, false, true); 
+
+        // 🌟 ASLI MAGIC YAHAN HAI: AI ka jawab sidha Aawaz (Voice) mein convert karke sunao
+        if (window.Android && typeof window.Android.speak === 'function') {
+            // Text ko clean karke play karna taaki emojis ya code na bole
+            let voiceText = aiResponse.replace(/[*#]/g, ''); 
+            window.Android.speak(voiceText);
+        }
+
+    } catch (error) {
+        console.error("Screen Analyze Error:", error);
+        addMessageToUI('model', "Maaf kijiye, main theek se dekh nahi paaya.");
+        if (window.Android) window.Android.speak("Maaf kijiye, photo clear nahi aayi ya network slow hai.");
+    } finally {
+        if (typingIndicator) typingIndicator.classList.add('hidden');
+    }
+};
+
         // ✅ ANDROID SE SIGNAL AANE PAR ICON RESET KAREGA
 window.onSpeechFinished = function() {
     console.log("Android: Speaking finished.");
