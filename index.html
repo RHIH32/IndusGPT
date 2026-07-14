@@ -186,28 +186,31 @@ code {
     color: inherit !important; /* Bold text white chamkega */
 }
 
-        /* =========================================
+      /* =========================================
            🚀 FLOATING GLASS INPUT BAR (APPLE STYLE)
            ========================================= */
         
         /* 1. Main chat area ko relative aur neeche se khali karein */
         .main-content {
             position: relative !important;
+            height: 100% !important; /* Mobile layout ke liye height stable rakhega */
         }
         #chat-container {
-            padding-bottom: 140px !important; /* Taaki aakhiri message dabbe ke peeche na chhupe */
+            padding-bottom: 120px !important; /* Margin perfectly adjust kiya taaki text pichhe na dabe */
         }
 
-        /* 2. Footer (Neeche wale hisse) ko hawa mein tairayein */
+        /* 2. Footer ko container ke upar absolute tairayein (Mobile Keyboard Fix) */
         .footer {
-            position: fixed !important; /* YAHAN ABSOLUTE KI JAGAH FIXED KIYA HAI */
+            position: absolute !important; /* FIXED ko badal kar ABSOLUTE kiya taaki keyboard ke sath upar aaye */
             bottom: 0 !important;
             left: 0 !important;
-            width: 100% !important;     /* YEH LINE ADD KI HAI */
-            z-index: 50 !important;     /* YEH LINE ADD KI HAI */
-            background: transparent !important;
+            width: 100% !important;
+            z-index: 50 !important;
+            background: transparent !important; /* Bahar ka area ekdum transparent */
             padding-bottom: 20px !important;
             pointer-events: none; 
+            backdrop-filter: none !important; /* Extra protection: footer khud ko blur nahi karega */
+            -webkit-backdrop-filter: none !important;
         }
         
         /* Form ke andar click kaam kare uske liye */
@@ -217,14 +220,15 @@ code {
 
         /* 3. Asli Dabbe ko "Glass" jaisa banayein */
         #chat-form {
-            background: rgba(20, 20, 24, 0.75) !important; /* Halka sa transparent dark */
-            backdrop-filter: blur(16px) !important; /* Peeche ke messages ko blur karega */
+            background: rgba(20, 20, 24, 0.75) !important;
+            backdrop-filter: blur(16px) !important; /* Blur ab sirf is dabbe ke pichhe limited rahega */
             -webkit-backdrop-filter: blur(16px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important; /* Patli si chamakti border */
-            box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.5) !important; /* 3D Shadow */
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.5) !important;
             margin-left: 15px !important;
             margin-right: 15px !important;
-            border-radius: 35px !important; /* Ekdum gol */
+            border-radius: 35px !important;
+            overflow: hidden; /* ZAROORI: Isse blur box ke corners se bahar nahi jhalkega */
         }
 
         /* 4. Light Theme ke liye adjustment */
@@ -389,7 +393,7 @@ code {
             <main id="chat-container" class="flex-1 p-4 space-y-4 overflow-y-auto"></main>
 
             <!-- Footer -->
-            <footer class="footer backdrop-blur-sm p-0 z-20 w-full">
+            <footer class="footer p-0 z-20 w-full bg-transparent">
                 
                 <div id="typing-indicator" class="px-4 pb-2 hidden">
                     <div class="flex items-center">
