@@ -267,8 +267,11 @@ code {
                 
                 <input type="email" id="email-input" placeholder="Your email..." class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
                 
-                <input type="password" id="password-input" placeholder="Your password..." class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+               <input type="password" id="password-input" placeholder="Your password..." class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
                 
+                <div class="flex justify-end -mt-2 mb-2" id="forgot-password-container">
+                    <button type="button" id="forgot-password-btn" class="text-sm font-semibold text-indigo-800 hover:text-indigo-900 hover:underline focus:outline-none transition-colors">Forgot Password?</button>
+                </div>
                 <button type="submit" id="auth-submit-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-3 rounded-lg font-semibold shadow-lg hover:shadow-xl">Login</button>
             </form>
 
@@ -1617,8 +1620,12 @@ function firebaseSignInWithToken(idToken) {
             const authSubtitle = document.getElementById('auth-subtitle');
             const usernameContainer = document.getElementById('username-container');
             const authSubmitBtn = document.getElementById('auth-submit-btn');
-            const authToggleText = document.getElementById('auth-toggle-text');
+          const authToggleText = document.getElementById('auth-toggle-text');
             const authToggleBtn = document.getElementById('auth-toggle-btn');
+            
+            // Naye buttons JS mein jodein 👇
+            const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+            const forgotPasswordContainer = document.getElementById('forgot-password-container');
 
             authToggleBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1632,6 +1639,8 @@ function firebaseSignInWithToken(idToken) {
                     authSubmitBtn.textContent = "Login";
                     authToggleText.textContent = "Don't have an account?";
                     authToggleBtn.textContent = "Sign Up";
+                    // Login page par Forgot Password dikhayein 👇
+                    if(forgotPasswordContainer) forgotPasswordContainer.classList.remove('hidden');
                 } else {
                     authTitle.textContent = "Create Account";
                     authSubtitle.textContent = "Sign up for IndusGPT";
@@ -1640,9 +1649,11 @@ function firebaseSignInWithToken(idToken) {
                     authSubmitBtn.textContent = "Sign Up";
                     authToggleText.textContent = "Already have an account?";
                     authToggleBtn.textContent = "Login";
+                    // Sign Up page par Forgot Password chupa dein 👇
+                    if(forgotPasswordContainer) forgotPasswordContainer.classList.add('hidden');
                 }
             });
-
+            
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 
@@ -1686,6 +1697,36 @@ function firebaseSignInWithToken(idToken) {
                         });
                 }
             });
+
+            // YAHAN NAYA CODE PASTE KAREIN 👇
+            if (forgotPasswordBtn) {
+                forgotPasswordBtn.addEventListener('click', () => {
+                    const email = emailInput.value.trim();
+                    if (!email) {
+                        alert("Pehle apna email address upar wale box mein likhein, phir 'Forgot Password' par click karein.");
+                        return;
+                    }
+
+                    const originalText = forgotPasswordBtn.textContent;
+                    forgotPasswordBtn.textContent = "Sending link...";
+                    forgotPasswordBtn.disabled = true;
+
+                    auth.sendPasswordResetEmail(email)
+                        .then(() => {
+                            alert("Password reset link aapke email par bhej diya gaya hai! Apna Inbox check karein.");
+                        })
+                        .catch((error) => {
+                            alert("Error: " + error.message);
+                        })
+                        .finally(() => {
+                            forgotPasswordBtn.textContent = originalText;
+                            forgotPasswordBtn.disabled = false;
+                        });
+                });
+            }
+            // 👆 NAYA CODE YAHAN KHATAM
+
+            guestLoginBtn.addEventListener('click', () => handleLogin('Guest'));
             
             guestLoginBtn.addEventListener('click', () => handleLogin('Guest'));
             
