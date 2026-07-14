@@ -832,7 +832,7 @@ if(savedUser) {
             menuButton.classList.toggle('hidden');
         }
     
-       function getStorageKey() { return `indusgpt-chats-${currentUser}`; }}
+       function getStorageKey() { return `indusgpt-chats-${currentUser}`; }
 
         function loadConversations() {
             const saved = localStorage.getItem(getStorageKey());
@@ -1726,10 +1726,7 @@ function firebaseSignInWithToken(idToken) {
             }
             // 👆 NAYA CODE YAHAN KHATAM
 
-            guestLoginBtn.addEventListener('click', () => handleLogin('Guest'));
-            
-            guestLoginBtn.addEventListener('click', () => handleLogin('Guest'));
-            
+            guestLoginBtn.addEventListener('click', () => handleLogin('Guest'));            
            
              googleLoginBtn.addEventListener('click', () => {
             // Check karo ki "Android" interface hai ya nahi
