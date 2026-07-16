@@ -266,6 +266,32 @@ code {
 .light-theme .message-bubble a:hover {
     color: #1d4ed8 !important;
 }
+
+        /* Shop Links Buttons Styling */
+.message-bubble a[href*="amazon"], .message-bubble a[href*="flipkart"] {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background-color: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary) !important;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    margin: 4px 6px 4px 0;
+    transition: all 0.2s ease;
+}
+
+.message-bubble a[href*="amazon"]:hover {
+    background-color: #ff9900 !important; /* Amazon Orange */
+    color: #000000 !important;
+}
+
+.message-bubble a[href*="flipkart"]:hover {
+    background-color: #2874f0 !important; /* Flipkart Blue */
+    color: #ffffff !important;
+}
     </style>
 
   <script>
@@ -709,18 +735,15 @@ window.showLanguagePackGuide = function() {
      // --- Initialization (Fixed Version) ---
 function initialize() {
 
-   // --- MARKED.JS CUSTOM RENDERER (Updated Fix for Latest Version) ---
-    const renderer = new marked.Renderer();
+  const renderer = new marked.Renderer();
     
+    // 1. Links naye tab mein kholne ke liye
     renderer.link = function(href, title, text) {
-        // Agar marked.js ka naya version hai, toh data 'href' object ke andar aayega
         if (typeof href === 'object') {
             text = href.text;
             title = href.title;
             href = href.href;
         }
-        
-        // Link ko naye tab mein kholne ka code
         return `<a target="_blank" href="${href}" title="${title || ''}" rel="noopener noreferrer">${text}</a>`;
     };
 
@@ -1570,10 +1593,21 @@ async function addMessageToUI(sender, message, animate = false) {
             - **File Analysis:** When a file is provided, analyze its content to answer the user's questions about it.
             - **Deep Research:** If the user enables "Deep Research", you MUST use your available tools to find the latest and most accurate information before answering.
             - **Professional Visuals & Diagrams:** Jab bhi user kisi process, architecture, ya complex topic ko visual/image/diagram ke roop mein samjhane ko kahe, toh aapko Mermaid.js syntax ka use karke flowchart ya mindmap banana hai. Code ko hamesha \`\`\`mermaid aur \`\`\` ke beech mein likhein. Iske alawa, data ko professionally samjhane ke liye Markdown Tables ka use karein.
-            - **Links & References:** Agar user kisi website ka link maange ya aapko koi reference dena ho, toh hamesha Markdown format ka use karein. (Example: [Click Here](https://example.com) ya sidhe URL likhein).
-            
-    
-            **🚨 STRICT REAL-TIME DATA (FROM USER DEVICE):**
+            - **Premium Product Layout & Technical Specs (STRICT RULE):** Jab bhi user kisi phone ya electronics ke bare mein puche, toh aapko bina koi conversational filler waste kiye, hamesha niche diye gaye **Exact Layout** ko follow karna hai. Har phone block mein name, specs, aur direct e-commerce links hone chahiye.
+
+              Hamesha is exact pattern mein response format karein:
+
+              ### 📱 [Phone Model Name]
+
+              * **💰 Price:** ₹[Approximate Price]
+              * **🧠 Performance & Hardware:**
+              * **RAM:** [e.g., 8GB / 12GB LPDDR5X]
+              * **Storage:** [e.g., 128GB / 256GB UFS 4.0]
+              * **Processor:** [e.g., MediaTek Dimensity 7300 / Snapdragon 8 Gen 2]
+              * **🎯 Kiske liye achha hai:** [Detail batayein jaise - High-end Gaming, Pro Photography, ya Heavy Multitasking]
+              * **🛒 Direct Buy Links:** [Check on Amazon](https://www.amazon.in/s?k=[Phone+Name]) | [Check on Flipkart](https://www.flipkart.com/search?q=[Phone+Name])
+              
+     **🚨 STRICT REAL-TIME DATA (FROM USER DEVICE):**
            - **Current Time:** ${deviceTime}
            - **Current Date:** ${deviceDate}
     
