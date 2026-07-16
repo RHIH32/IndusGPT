@@ -16,6 +16,13 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
+    <!-- Mermaid.js for ChatGPT-like Diagrams -->
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+    window.mermaid = mermaid; // Isko global banaya taaki neeche use kar sakein
+</script>
+
     <style>
         /* Code Block Style */
 
@@ -237,6 +244,28 @@ code {
             border: 1px solid rgba(0, 0, 0, 0.15) !important;
             box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.1) !important;
         }
+
+        /* --- MARKDOWN LINKS FIX --- */
+.message-bubble a {
+    color: #3b82f6 !important; /* Professional Blue Color */
+    text-decoration: underline !important;
+    font-weight: 500;
+    word-break: break-all; /* Lamba link chat ke bahar na nikle */
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.message-bubble a:hover {
+    color: #60a5fa !important; /* Hover par thoda light blue */
+}
+
+/* Light theme ke liye thoda dark blue */
+.light-theme .message-bubble a {
+    color: #2563eb !important;
+}
+.light-theme .message-bubble a:hover {
+    color: #1d4ed8 !important;
+}
     </style>
 
   <script>
@@ -679,6 +708,19 @@ window.showLanguagePackGuide = function() {
 
      // --- Initialization (Fixed Version) ---
 function initialize() {
+
+    // --- MARKED.JS CUSTOM RENDERER (Links naye tab mein kholne ke liye) ---
+    const renderer = new marked.Renderer();
+    renderer.link = function(href, title, text) {
+        // target="_blank" lagane se link naye tab mein khulta hai
+        return `<a target="_blank" href="${href}" title="${title || ''}" rel="noopener noreferrer">${text}</a>`;
+    };
+
+    marked.setOptions({
+        renderer: renderer,
+        gfm: true,
+        breaks: true
+    });
     const savedUser = localStorage.getItem('indusgpt-user');
     const savedEmail = localStorage.getItem('indusgpt-email');
     const savedTheme = localStorage.getItem('indusgpt-theme');
@@ -1393,9 +1435,30 @@ async function addMessageToUI(sender, message, animate = false) {
             await typeWriter(contentDiv, message);
         } else {
             contentDiv.innerHTML = marked.parse(message);
-            contentDiv.querySelectorAll('pre code').forEach((block) => {
+           // Highlight.js for normal code blocks
+            contentDiv.querySelectorAll('pre code:not(.language-mermaid)').forEach((block) => {
                 hljs.highlightElement(block);
             });
+
+            // Mermaid.js for ChatGPT-like Diagrams
+            setTimeout(async () => {
+                const mermaidBlocks = contentDiv.querySelectorAll('code.language-mermaid');
+                for (let i = 0; i < mermaidBlocks.length; i++) {
+                    const block = mermaidBlocks[i];
+                    const code = block.textContent;
+                    const id = `mermaid-diagram-${Date.now()}-${i}`;
+                    try {
+                        const { svg } = await window.mermaid.render(id, code);
+                        const container = document.createElement('div');
+                        container.innerHTML = svg;
+                        container.className = "flex justify-center my-6 p-4 bg-[var(--bg-tertiary)] rounded-xl overflow-x-auto shadow-inner w-full";
+                        // Original code block ko hatakar wahan diagram laga do
+                        block.parentElement.replaceWith(container); 
+                    } catch (err) {
+                        console.error("Diagram render error:", err);
+                    }
+                }
+            }, 100);
         }
 
         // --- 🟢 NEW: Add Copy Button INSIDE Code Blocks ---
@@ -1498,7 +1561,10 @@ async function addMessageToUI(sender, message, animate = false) {
             - **Formatting:** For mathematical equations, you MUST use LaTeX formatting (e.g., $E=mc^2$). For lists or roadmaps, use markdown lists (*, -, 1.).
             - **File Analysis:** When a file is provided, analyze its content to answer the user's questions about it.
             - **Deep Research:** If the user enables "Deep Research", you MUST use your available tools to find the latest and most accurate information before answering.
-
+            - **Professional Visuals & Diagrams:** Jab bhi user kisi process, architecture, ya complex topic ko visual/image/diagram ke roop mein samjhane ko kahe, toh aapko Mermaid.js syntax ka use karke flowchart ya mindmap banana hai. Code ko hamesha \`\`\`mermaid aur \`\`\` ke beech mein likhein. Iske alawa, data ko professionally samjhane ke liye Markdown Tables ka use karein.
+            - **Links & References:** Agar user kisi website ka link maange ya aapko koi reference dena ho, toh hamesha Markdown format ka use karein. (Example: [Click Here](https://example.com) ya sidhe URL likhein).
+            
+    
             **🚨 STRICT REAL-TIME DATA (FROM USER DEVICE):**
            - **Current Time:** ${deviceTime}
            - **Current Date:** ${deviceDate}
