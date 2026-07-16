@@ -709,10 +709,18 @@ window.showLanguagePackGuide = function() {
      // --- Initialization (Fixed Version) ---
 function initialize() {
 
-    // --- MARKED.JS CUSTOM RENDERER (Links naye tab mein kholne ke liye) ---
+   // --- MARKED.JS CUSTOM RENDERER (Updated Fix for Latest Version) ---
     const renderer = new marked.Renderer();
+    
     renderer.link = function(href, title, text) {
-        // target="_blank" lagane se link naye tab mein khulta hai
+        // Agar marked.js ka naya version hai, toh data 'href' object ke andar aayega
+        if (typeof href === 'object') {
+            text = href.text;
+            title = href.title;
+            href = href.href;
+        }
+        
+        // Link ko naye tab mein kholne ka code
         return `<a target="_blank" href="${href}" title="${title || ''}" rel="noopener noreferrer">${text}</a>`;
     };
 
