@@ -133,8 +133,44 @@ code {
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
         .mic-listening { color: #ef4444; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .action-button { display: inline-flex; align-items: center; margin-top: 10px; padding: 8px 14px; background-image: linear-gradient(to right, #4f46e5, #7c3aed); color: white; border-radius: 18px; font-weight: 500; text-decoration: none; transition: transform 0.2s ease; }
-        .action-button:hover { transform: scale(1.05); } .action-button svg { margin-right: 8px; }
+
+        /* 1. DARK THEME / BLACK THEME KE LIYE (Default) */
+        .action-button { 
+            display: inline-flex; 
+            align-items: center; 
+            margin-top: 10px; 
+            padding: 8px 14px; 
+            background: #1e2127 !important; /* Premium Dark Gray Background */
+            color: #ffffff !important; /* White Text */
+            border-radius: 18px; 
+            font-weight: 600; 
+            text-decoration: none; 
+            border: 1px solid #4b5563 !important; /* Halka gray border */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease; 
+        }
+        .action-button:hover { 
+            transform: translateY(-2px); 
+            background: #27292c !important; /* Hover par thoda light gray */
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+        } 
+        .action-button svg { 
+            margin-right: 8px; 
+            fill: currentColor; 
+        }
+
+        /* 2. LIGHT THEME / WHITE THEME KE LIYE */
+        .light-theme .action-button {
+            background: #ffffff !important; /* White Background */
+            color: #4f46e5 !important; /* Purple/Indigo Text */
+            border: 1px solid #e5e7eb !important; /* Halka sa border */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); /* Soft shadow */
+        }
+        .light-theme .action-button:hover {
+            background: #f8fafc !important; /* Hover par bahut halka greyish-white */
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        }
+        
         #sidebar { transition: width 0.3s ease-in-out, padding 0.3s ease-in-out, background-color 0.3s ease-in-out; background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); }
         #sidebar.collapsed { width: 0; padding: 0; overflow: hidden; }
         #login-screen, #payment-modal { background: linear-gradient(125deg, #FF9933, #FFFFFF, #138808); background-size: 400% 400%; animation: move-bg 10s ease infinite; }
@@ -1608,8 +1644,9 @@ async function addMessageToUI(sender, message, animate = false) {
               * **🛒 Direct Buy Links:** [Check on Amazon](https://www.amazon.in/s?k=[Phone+Name]) | [Check on Flipkart](https://www.flipkart.com/search?q=[Phone+Name])
               
      **🚨 STRICT REAL-TIME DATA (FROM USER DEVICE):**
-           - **Current Time:** ${deviceTime}
-           - **Current Date:** ${deviceDate}
+            - **Current Time:** ${deviceTime}
+            - **Current Date:** ${deviceDate}
+            *(CRITICAL INSTRUCTION: Yeh time aur date sirf aapki background knowledge ke liye hai. Jab tak user explicitly na puche (jaise "Time kya hai?" ya "Aaj kya date hai?"), tab tak apne kisi bhi jawaab mein time, date ya din ka zikr BILKUL MAT KARNA. Normal sawalon ke direct jawaab do, time mat batao.)*
     
            - If user asks "Time kya hua?", "Date?", "Din kaunsa hai?":
            **YOU MUST** use the EXACT time/date shown above. Do not guess. Do not say "Check device". Just answer.
@@ -1626,14 +1663,19 @@ async function addMessageToUI(sender, message, animate = false) {
             
             **Action Commands (JSON Responses):**
             If a user's request DIRECTLY maps to one of the following actions, your ENTIRE response MUST be ONLY the corresponding JSON object. Do not add any conversational text before or after the JSON.
-            - **Google Search:** For requests like "search for X", "find information about Y".
-              {"action": "google", "query": "[search term]", "response": "👉 Is vishay par aur jaankari ke liye yahan click karein."}
-            - **YouTube Search:** For requests like "find a video about X", "show me a YouTube video of Y".
+            
+            - **YouTube / Songs / Videos:** Jab bhi user koi gaana, video, ya movie maange (jaise "Hindi gaane", "Bhajan sunao", "video dikhao"), toh aapko direct link NAHI dena hai. Hamesha yeh JSON use karein:
               {"action": "youtube", "query": "[search term]", "response": "👉 Is video ko dekhne ke liye yahan click karein."}
+              
+            - **Direct Website Links:** Agar user kisi website, portal, ya company ka link maange (jaise "SBI link", "UPSC website", "Amazon"), toh Google JSON use NAHI karna hai. Uski jagah direct chat mein asli link is format mein dein:
+              ✅ Sahi: "[State Bank of India](https://sbi.co.in/)"
+              
             - **WhatsApp Message:** For requests like "send a WhatsApp message to [number]".
               {"action": "whatsapp", "number": "[phone_number_with_country_code]", "message": "[message_to_send]", "response": "👉 WhatsApp par message bhejne ke liye yahan click karein."}
-            - **Phone Call:** For requests like "call [number]". If the user provides a name instead of a number, you MUST ask for the number first. Do not make up numbers.
+              
+            - **Phone Call:** For requests like "call [number]". If the user provides a name instead of a number, you MUST ask for the number first.
               {"action": "call", "number": "[phone_number]", "response": "👉 Call karne ke liye yahan click karein."}
+              
             - **Image Generation:** If asked to create an image ("banao", "create", "generate image"), use this JSON: 
               {"action": "generate_image", "prompt": "[detailed image description]", "response": "Theek hai, main aapke liye yeh photo bana raha hoon... 🎨"}
 
