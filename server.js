@@ -101,8 +101,8 @@ app.post('/api/generate', async (req, res) => {
 
         // --- 5. 🚀 CALL OPENROUTER FREE API ---
         const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-            model: "google/gemma-2-9b-it:free", // 🔥 Yeh Hamesha Free Rahega!
-            messages: openRouterMessages
+          model: "meta-llama/llama-3-8b-instruct:free",
+          messages: openRouterMessages
         }, {
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
