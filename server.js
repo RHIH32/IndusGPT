@@ -101,7 +101,7 @@ app.post('/api/generate', async (req, res) => {
 
       // --- 5. 🚀 CALL OPENROUTER FREE API ---
         const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-           model: "meta-llama/llama-3.1-8b-instruct:free", // 🔥 Yeh Hamesha chalega! Automatic best free model chunega.
+          model: "openrouter/free", // 🔥 Yeh Hamesha chalega! Automatic best free model chunega.
             messages: openRouterMessages
         }, {
             headers: {
