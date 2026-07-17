@@ -101,7 +101,7 @@ app.post('/api/generate', async (req, res) => {
 
         // --- 5. 🚀 CALL OPENROUTER FREE API ---
         const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-          model: "huggingfaceh4/zephyr-7b-beta:free",
+          model: "meta-llama/llama-3-8b-instruct:free",
           messages: openRouterMessages
         }, {
             headers: {
