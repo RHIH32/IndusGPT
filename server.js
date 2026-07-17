@@ -99,14 +99,16 @@ app.post('/api/generate', async (req, res) => {
             }
         });
 
-        // --- 5. 🚀 CALL OPENROUTER FREE API ---
+       // --- 5. 🚀 CALL OPENROUTER FREE API (WITH SECURITY HEADERS) ---
         const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-          model: "meta-llama/llama-3-8b-instruct:free",
-          messages: openRouterMessages
+            model: "meta-llama/llama-3-8b-instruct:free", // Ya jo bhi model aapne set kiya ho
+            messages: openRouterMessages
         }, {
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://raviai-1h96.onrender.com", // 🚨 FREE TIER KE LIYE ZAROORI HAI
+                "X-Title": "IndusGPT" // 🚨 APP KA NAAM ZAROORI HAI
             }
         });
 
