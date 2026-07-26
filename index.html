@@ -423,44 +423,63 @@ code {
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col main-content overflow-hidden">
-            <!-- Header -->
-           <header class="header backdrop-blur-sm p-4 pt-8 flex items-center justify-between z-10 border-b relative">
+   <!-- Header -->
+<header class="header backdrop-blur-sm p-4 pt-8 flex items-center justify-between z-10 border-b relative">
     <div class="flex items-center">
         <button id="menu-button" class="hidden mr-4"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
         <img src="logooo-removebg-preview.png" alt="IndusGPT Logo" class="h-10 w-10 rounded-full bg-white/10 p-1 object-cover">
         <h1 class="animated-text text-xl font-bold ml-2">IndusGPT</h1>
     </div>
-               <!-- NAYA 3-DOT MENU AUR LANGUAGE SELECTOR -->
+
     <div class="relative">
+        <!-- YEH HAI WO 3-DOT BUTTON JO MISSING THA -->
         <button id="three-dot-menu-btn" class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors focus:outline-none">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
             </svg>
         </button>
 
-        <div id="three-dot-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-2xl z-50 overflow-hidden transform origin-top-right transition-all">
-            <div class="p-4">
-                <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Settings</p>
-                <label for="language-selector" class="block text-sm font-medium text-[var(--text-primary)] mb-1">AI Language</label>
-                <select id="language-selector" class="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                    <option value="Hinglish (Hindi written in English alphabet)">Hinglish (Default)</option>
-                    <option value="Hindi (in Devanagari script)">Hindi (हिंदी)</option>
-                    <option value="Bhojpuri">Bhojpuri</option>
-                    <option value="English">English</option>
-                    <option value="Marathi">Marathi</option>
-                    <option value="Gujarati">Gujarati</option>
-                    <option value="Bengali">Bengali</option>
-                    <option value="Tamil">Tamil</option>
-                    <option value="Telugu">Telugu</option>
-                    <option value="Urdu">Urdu</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                </select>
+        <div id="three-dot-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-2xl z-50 overflow-hidden transform origin-top-right transition-all">
+            <div class="p-4 space-y-4">
+                <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Settings</p>
+                
+                <!-- Language Selector -->
+                <div>
+                    <label for="language-selector" class="block text-xs font-medium text-[var(--text-secondary)] mb-1">AI Language</label>
+                    <select id="language-selector" class="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer">
+                        <option value="Hinglish (Hindi written in English alphabet)">Hinglish (Default)</option>
+                        <option value="Hindi (in Devanagari script)">Hindi (हिंदी)</option>
+                        <option value="Bhojpuri">Bhojpuri</option>
+                        <option value="English">English</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Gujarati">Gujarati</option>
+                    </select>
+                </div>
+
+                <!-- Vibe / Persona Selector -->
+                <div>
+                    <label for="persona-selector" class="block text-xs font-medium text-[var(--text-secondary)] mb-1">AI Vibe (Character)</label>
+                    <select id="persona-selector" class="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer">
+                        <option value="Roast">Friendly Roast (Savage)</option>
+                        <option value="BabuRao">Babu Rao (Hera Pheri)</option>
+                        <option value="Bhoi">Bhoi (Salman Attitude)</option>
+                        <option value="Shayari">Sirf Shayari (Poetic)</option>
+                        <option value="Normal">Normal (Helpful)</option>
+                    </select>
+                </div>
+
+                <!-- Kanjoos Mode Toggle -->
+                <div class="flex items-center justify-between border-t border-[var(--border-color)] pt-3">
+                    <span class="text-sm font-medium text-[var(--text-primary)]">Kanjoos Mode 💸</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="kanjoos-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                </div>
             </div>
         </div>
     </div>
 </header>
-
             <main id="chat-container" class="flex-1 p-4 space-y-4 overflow-y-auto"></main>
 
             <!-- Footer -->
@@ -694,6 +713,8 @@ Your subscription payments are handled by our secure third-party payment partner
 
 
         let currentAiLanguage = localStorage.getItem('indusgpt-lang') || 'Hinglish (Hindi written in English alphabet)';
+        let currentAiPersona = localStorage.getItem('indusgpt-persona') || 'Roast';
+        let isKanjoosMode = localStorage.getItem('indusgpt-kanjoos') === 'true';
      
     // ==========================================================
 // YEH FINAL AUR SAHI CODE HAI. PURAANE FUNCTIONS KI JAGAH
@@ -1571,6 +1592,30 @@ async function addMessageToUI(sender, message, animate = false) {
           const now = new Date();
           const deviceTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const deviceDate = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                // PERSONA LOGIC START
+            let personaInstruction = "";
+            if (currentAiPersona === "Normal") {
+                personaInstruction = "Aap ek helpful aur polite assistant hain. Sidha aur clear jawab dein.";
+            } else if (currentAiPersona === "Roast") {
+                personaInstruction = "Aapka style bilkul ek savage dost jaisa hona chahiye. Har jawaab mein user ki thodi 'friendly tang khichai' (roast) karni hai. Sarcasm aur humor ka bharpoor use karein, lekin offensive nahi.";
+            } else if (currentAiPersona === "BabuRao") {
+                personaInstruction = "Aap 'Hera Pheri' movie ke 'Babu Rao Ganpatrao Apte' ho. Aapko har baat pe chidhna hai, 'Utha le re baba', 'Deva re Deva', 'Khopdi tod saale ka' jaise dialogues use karne hain. User ko pareshan hone ka natak karna hai, theth Babu Rao ki style mein jawab do.";
+            } else if (currentAiPersona === "Bhoi") {
+                personaInstruction = "Aap 'Salman Khan' (Bhoi) ke persona mein ho. Aapka attitude ekdum swaag wala, bhai-type hona chahiye. 'Ek baar jo maine commitment kar di', 'Swagat nahi karoge hamara' jaise dialogues use karein. Thoda attitude aur swag se answer dena hai.";
+            } else if (currentAiPersona === "Shayari") {
+                personaInstruction = "Aap ek romantic kavi (poet) hain. Aap apna har jawaab ek nayi, original Shayari, Kavita, ya ghazal se shuru karenge. Uske baad hi aage ka technical jawab samjhayenge. Har baat mein wazan hona chahiye. Jaise: 'Arz kiya hai...'";
+            }
+
+            // KANJOOS LOGIC START
+            let kanjoosInstruction = "";
+            if (isKanjoosMode) {
+                kanjoosInstruction = `
+                **💸 KANJOOS MODE IS ON (MIDDLE-CLASS VIBE):**
+                Jab bhi user kisi mehangi cheez, gadget, trip ya paise kharch karne ki baat kare (jaise iPhone, Gaming Laptop, Trip), toh aapko usko SAKHT daantna hai. 
+                Pehle use gyan do (jaise: "Ghar ka pankha theek kara le pehle", "Papa ke paise udane mein bada maza aata hai", "Tinde kha ke pizza ke sapne mat dekh"). Uske baad hi koi bahut sasta jugaad ya alternative batao.
+                `;
+            }
    
           const systemPrompt = `You are "IndusGPT", a highly intelligent but extremely sarcastic and funny AI assistant. 
 
@@ -1580,6 +1625,11 @@ async function addMessageToUI(sender, message, animate = false) {
             - If ${currentAiLanguage} is "Hindi (in Devanagari script)", you MUST output your answer in pure Devanagari text (हिंदी लिपि) only. Do NOT reply in Roman/Hinglish.
             - If ${currentAiLanguage} is "Bhojpuri", reply purely in Bhojpuri.
             - NEVER mirror the user's input language. ALWAYS force your output to be in **${currentAiLanguage}**.
+
+            **🎭 CURRENT VIBE/PERSONA:**
+            ${personaInstruction}
+
+            ${kanjoosInstruction}
 
             **CRITICAL RULE FOR PERSONA (FRIENDLY ROAST):** Aapka style bilkul ek savage dost jaisa hona chahiye. Har jawaab mein user ki thodi 'friendly tang khichai' (roast) karni hai. Sarcasm aur humor ka bharpoor use karein, lekin dhyan rahe ki roast funny aur friendly ho, gusse wala ya offensive nahi. Sawaal ka sahi jawaab zaroor dena hai, par pehle ek mast roast marna hai! Jaise agar wo code puche, toh bolo "Khud toh dimag lagana nahi hai, aa gaye mujhse chhapne... lo ye raha code:" Use emojis (😂, 🤦‍♂️, 💀, 🤓, 💅) heavily.
 
@@ -1762,6 +1812,28 @@ function firebaseSignInWithToken(idToken) {
         });
     }
     // 👆👆👆 NAYA CODE YAHAN KHATAM 👆👆👆
+
+            const personaSelector = document.getElementById('persona-selector');
+    const kanjoosToggle = document.getElementById('kanjoos-toggle');
+
+    if (personaSelector) {
+        personaSelector.value = currentAiPersona;
+        personaSelector.addEventListener('change', (e) => {
+            currentAiPersona = e.target.value;
+            localStorage.setItem('indusgpt-persona', currentAiPersona);
+            threeDotDropdown.classList.add('hidden');
+            addMessageToUI('model', `Mera naya Vibe ab **${e.target.options[e.target.selectedIndex].text}** hai! 😎`);
+        });
+    }
+
+    if (kanjoosToggle) {
+        kanjoosToggle.checked = isKanjoosMode;
+        kanjoosToggle.addEventListener('change', (e) => {
+            isKanjoosMode = e.target.checked;
+            localStorage.setItem('indusgpt-kanjoos', isKanjoosMode);
+            addMessageToUI('model', isKanjoosMode ? "Kanjoos mode ON! Ab udne nahi dunga tumhare paise! 💸" : "Kanjoos mode OFF! Jo chahiyee kharido! 🛍️");
+        });
+    }
             
             let isLoginMode = true; 
             const authTitle = document.getElementById('auth-title');
