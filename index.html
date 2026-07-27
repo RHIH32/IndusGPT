@@ -478,6 +478,15 @@ code {
                         <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                     </label>
                 </div>
+
+                <!-- Live Canvas Toggle -->
+           <div class="flex items-center justify-between border-t border-[var(--border-color)] pt-3 mt-2">
+               <span class="text-sm font-medium text-[var(--text-primary)]">Live Canvas 🛠️</span>
+               <label class="relative inline-flex items-center cursor-pointer">
+                   <input type="checkbox" id="live-canvas-toggle" class="sr-only peer">
+                   <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+               </label>
+           </div>
             </div>
         </div>
     </div>
@@ -717,6 +726,7 @@ Your subscription payments are handled by our secure third-party payment partner
         let currentAiLanguage = localStorage.getItem('indusgpt-lang') || 'Hinglish (Hindi written in English alphabet)';
         let currentAiPersona = localStorage.getItem('indusgpt-persona') || 'Roast';
         let isKanjoosMode = localStorage.getItem('indusgpt-kanjoos') === 'true';
+        let isLiveCanvasMode = localStorage.getItem('indusgpt-canvas') === 'true';
      
     // ==========================================================
 // YEH FINAL AUR SAHI CODE HAI. PURAANE FUNCTIONS KI JAGAH
@@ -1501,29 +1511,66 @@ async function addMessageToUI(sender, message, animate = false) {
             }, 100);
         }
 
-        // --- 🟢 NEW: Add Copy Button INSIDE Code Blocks ---
-        contentDiv.querySelectorAll('pre').forEach(pre => {
-            // Agar button pehle se nahi hai
-            if (!pre.querySelector('.code-copy-btn')) {
-                const btn = document.createElement('button');
-                btn.className = 'code-copy-btn';
-                // Copy Icon
-                btn.innerHTML = `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
+       // --- 🟢 NEW: Add Copy & Live Preview Buttons INSIDE Code Blocks ---
+contentDiv.querySelectorAll('pre').forEach(pre => {
+
+    // 1. 📋 COPY BUTTON LOGIC (Ek hi baar rahega)
+    if (!pre.querySelector('.code-copy-btn')) {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-copy-btn absolute top-2 right-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded px-2 py-1 transition-colors z-10';
+        copyBtn.innerHTML = `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
+        
+        copyBtn.onclick = () => {
+            const codeText = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(codeText);
+            
+            // Success icon (Green check)
+            copyBtn.innerHTML = `<svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
+            setTimeout(() => {
+                copyBtn.innerHTML = `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
+            }, 2000);
+        };
+        pre.appendChild(copyBtn);
+    }
+
+    // 2. 🚀 LIVE CANVAS JADOO
+    const codeBlock = pre.querySelector('code');
+    
+    // Agar Live mode ON hai aur AI ne HTML code diya hai
+    if (isLiveCanvasMode && codeBlock && (codeBlock.className.includes('language-html') || codeBlock.className.includes('language-xml'))) {
+        
+        if (!pre.querySelector('.code-preview-btn')) {
+            const previewBtn = document.createElement('button');
+            // Copy button ke left mein set kiya (right-12 se right-14 kar diya taaki gap rahe)
+            previewBtn.className = 'code-preview-btn absolute top-2 right-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1 text-xs font-bold transition-colors shadow-lg flex items-center z-10';
+            previewBtn.innerHTML = '▶️ Live Preview';
+            
+            previewBtn.onclick = () => {
+                const codeContent = codeBlock.innerText;
                 
-                btn.onclick = () => {
-                    const code = pre.querySelector('code').innerText;
-                    navigator.clipboard.writeText(code);
-                    
-                    // Icon change to Checkmark temporarily
-                    btn.innerHTML = `<svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
-                    setTimeout(() => {
-                        btn.innerHTML = `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
-                    }, 2000);
-                };
+                // Blob URL ka use karke code ko virtual file mein convert karna
+                const blob = new Blob([codeContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
                 
-                pre.appendChild(btn);
-            }
-        });
+                // Check karna ki iframe pehle se hai ya nahi
+                let existingIframe = pre.nextElementSibling;
+                if (existingIframe && existingIframe.tagName === 'IFRAME') {
+                    existingIframe.src = url; // Agar hai toh refresh karo
+                } else {
+                    // Naya frame banao jo browser mein render karega
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'w-full h-[500px] mt-4 border-[3px] border-indigo-500 rounded-xl bg-white shadow-2xl';
+                    iframe.src = url;
+                    pre.insertAdjacentElement('afterend', iframe);
+                }
+                
+                previewBtn.innerHTML = '🔄 Refresh Preview';
+            };
+            
+            pre.appendChild(previewBtn);
+        }
+    }
+});
 
         // --- BUTTONS (Global Copy + Speak for text) ---
         // Code blocks ke liye alag button hai, isliye isse sirf text ke liye rakhte hain
@@ -1636,6 +1683,11 @@ async function addMessageToUI(sender, message, animate = false) {
                 Pehle use gyan do (jaise: "Ghar ka pankha theek kara le pehle", "Papa ke paise udane mein bada maza aata hai", "Tinde kha ke pizza ke sapne mat dekh"). Uske baad hi koi bahut sasta jugaad ya alternative batao.
                 `;
             }
+
+            let canvasInstruction = "";
+              if (isLiveCanvasMode) {
+                 canvasInstruction = `**🛠️ LIVE CANVAS MODE IS ON:** Jab bhi user koi web app, game, website, ya calculator banane ko kahe, toh poora HTML, CSS (<style> mein) aur JavaScript (<script> mein) EK HI FILE mein likhna. Aur us poore code ko sirf ek \`\`\`html block ke andar dena taaki main use live render kar saku.`;
+              }
    
           const systemPrompt = `You are "IndusGPT", a highly intelligent but extremely sarcastic and funny AI assistant. 
 
@@ -1650,6 +1702,8 @@ async function addMessageToUI(sender, message, animate = false) {
             ${personaInstruction}
 
             ${kanjoosInstruction}
+
+            ${canvasInstruction}
 
             **CRITICAL RULE FOR PERSONA (FRIENDLY ROAST):** Aapka style bilkul ek savage dost jaisa hona chahiye. Har jawaab mein user ki thodi 'friendly tang khichai' (roast) karni hai. Sarcasm aur humor ka bharpoor use karein, lekin dhyan rahe ki roast funny aur friendly ho, gusse wala ya offensive nahi. Sawaal ka sahi jawaab zaroor dena hai, par pehle ek mast roast marna hai! Jaise agar wo code puche, toh bolo "Khud toh dimag lagana nahi hai, aa gaye mujhse chhapne... lo ye raha code:" Use emojis (😂, 🤦‍♂️, 💀, 🤓, 💅) heavily.
 
@@ -1855,6 +1909,18 @@ function firebaseSignInWithToken(idToken) {
         });
     }
             
+   // Live Canvas Toggle Logic
+const canvasToggle = document.getElementById('live-canvas-toggle');
+
+if (canvasToggle) {
+    canvasToggle.checked = isLiveCanvasMode;
+    canvasToggle.addEventListener('change', (e) => {
+        isLiveCanvasMode = e.target.checked; // Yahan 'let' nahi aayega
+        localStorage.setItem('indusgpt-canvas', isLiveCanvasMode);
+        document.getElementById('three-dot-dropdown').classList.add('hidden');
+        addMessageToUI('model', isLiveCanvasMode ? "Live Canvas ON! 🛠️ Ab main jo bhi HTML/JS likhunga, uska Live Preview chat mein hi render karunga." : "Live Canvas OFF.");
+    });
+}
             let isLoginMode = true; 
             const authTitle = document.getElementById('auth-title');
             const authSubtitle = document.getElementById('auth-subtitle');
