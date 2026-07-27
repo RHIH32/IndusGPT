@@ -31,6 +31,13 @@ Whether you want to generate code, create images, get roasted by your AI, or tal
 *   **Backend / AI:** Custom Node.js/Express API connected to Gemini AI.
 *   **Libraries:** `html2canvas` (for Meme Generator), `marked.js` (Markdown), `highlight.js` (Syntax), `jspdf` (PDF Export).
 
+![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
+
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+
+
 ## 💡 Designed For The Future
 IndusGPT utilizes a sliding sidebar, smart auto-scroll, dynamic typing effects, and a glass-morphism floating input bar (Apple style) for a premium user experience on both mobile and desktop screens.
 
