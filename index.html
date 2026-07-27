@@ -2161,63 +2161,70 @@ if (canvasToggle) {
 
             });
 
-            removeFileButton.addEventListener('click', () => { selectedFile = null; filePreviewContainer.classList.add('hidden'); });
+  removeFileButton.addEventListener('click', () => { selectedFile = null; filePreviewContainer.classList.add('hidden'); });
 
-           // --- YEH NAYA CODE HAI (OLD chatForm LISTENER KO REPLACE KAREIN) ---
 
- // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER (Ise Paste Karein) 🚨 ---
-
+  // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 1. 🛑 STOP BUTTON LOGIC: Agar AI pehle se generate kar raha hai, toh use yahan roko
+    // 1. 🛑 STOP BUTTON LOGIC
     if (isGenerating) {
-        if (currentAbortController) currentAbortController.abort(); // API Call Cancel
+        console.log("Stop button pressed!");
+        if (currentAbortController) {
+            currentAbortController.abort(); // API Call Cancel
+        }
         typewriterActive = false; // UI Animation Cancel
-        toggleSendButton(false);  // Button ko wapas Send (Arrow) bana do
-        typingIndicator.classList.add('hidden'); // Typing dots hide karo
-        return; // Yahi se laut jao
+        
+        // Agar main chat mein loading bubble hai, toh use hatao
+        if(window.currentTempLoaderBubble && window.currentTempLoaderBubble.parentElement) {
+            window.currentTempLoaderBubble.parentElement.remove();
+        }
+        
+        toggleSendButton(false);  // Button wapas Arrow
+        typingIndicator.classList.add('hidden'); 
+        return; // Naya message mat bhejo
     }
 
     const userMessage = userInput.value.trim();
-    
-    // Agar message khali hai aur koi file nahi hai, to ruk jao
     if (!userMessage && !selectedFile) return;
 
-    synth?.cancel(); // Purana bolna band karo
-   
-    // --- STEP 1: KEYWORD CHECK (Gemini ko Bypass karne ke liye) ---
+    synth?.cancel(); 
+    userScrolledUp = false; // Naye message par auto-scroll on
+
+    // --- STEP 1: KEYWORD CHECK ---
     const lowerCaseMessage = userMessage.toLowerCase();
     const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
                                    lowerCaseMessage.startsWith("create a") ||
                                    lowerCaseMessage.startsWith("generate a");
-
     const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
                                 (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
-
     const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
 
-    // --- STEP 2: IMAGE GENERATION (Direct Call - No Gemini) ---
+    // --- STEP 2: IMAGE GENERATION ---
     if (isImageRequest) {
         addMessageToUI('user', userMessage);
         userInput.value = '';
         createImageToggle.checked = false; 
         userInput.placeholder = "Yahan type karein ya bolein...";
-        
         addMessageToUI('model', "Samajh gaya! Main aapke liye yeh shandaar photo bana raha hoon... 🎨");
-        const imageBubble = addAILoadingBubble();
+        
+        window.currentTempLoaderBubble = addAILoadingBubble();
         
         try {
             const base64Image = await generateImage(userMessage);
-            renderGeneratedImage(imageBubble, `data:image/png;base64,${base64Image}`);
+            if(window.currentTempLoaderBubble && window.currentTempLoaderBubble.parentElement) {
+                window.currentTempLoaderBubble.parentElement.remove();
+            }
+            renderGeneratedImage(addAILoadingBubble(), `data:image/png;base64,${base64Image}`);
         } catch (error) {
             console.error(error);
-            imageBubble.innerHTML = `<p class="text-red-400">Maaf kijiye, photo banane mein kuch samasya aa gayi.</p>`;
+            if(window.currentTempLoaderBubble) window.currentTempLoaderBubble.innerHTML = `<p class="text-red-400">Maaf kijiye, photo banane mein kuch samasya aa gayi.</p>`;
         }
         return; 
     }
 
-    // --- STEP 3: NORMAL CHAT (Gemini Call) ---
+    // --- STEP 3: NORMAL CHAT ---
     addMessageToUI('user', userMessage || `Analyzing file: ${selectedFile.name}`);
     userInput.value = '';
     typingIndicator.classList.remove('hidden');
@@ -2238,27 +2245,32 @@ chatForm.addEventListener('submit', async (e) => {
     filePreviewContainer.classList.add('hidden');
 
     try {
-        // 🚨 YAHAN BUTTON KO "STOP (LAAL RANG)" MEIN BADLA JATA HAI
+        // 🚨 BUTTON TURANT LAAL KARO
         toggleSendButton(true); 
+        window.currentTempLoaderBubble = addAILoadingBubble();
 
         const aiResponse = await getAIResponse(userMessage, fileData);
-        addMessageToHistory('model', aiResponse);
         
-        // Jawab aane ke baad Typewriter shuru karo
+        if(window.currentTempLoaderBubble && window.currentTempLoaderBubble.parentElement) {
+            window.currentTempLoaderBubble.parentElement.remove();
+        }
+
+        addMessageToHistory('model', aiResponse);
         await handleAIResponse(aiResponse);
         
     } catch (error) {
-        // Agar Stop dabne se 'AbortError' aaya hai
+        if(window.currentTempLoaderBubble && window.currentTempLoaderBubble.parentElement) {
+            window.currentTempLoaderBubble.parentElement.remove();
+        }
+
         if (error.message === 'AbortError' || error.name === 'AbortError') {
             addMessageToUI('model', "🛑 <i>Mera jawab yahan par rok diya gaya hai.</i>", false);
-            console.log("Chat stopped by user.");
         } else {
             console.error("Error getting AI response:", error);
-            addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai (Quota ya Server Error).");
+            addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai.");
         }
     } finally {
         typingIndicator.classList.add('hidden');
-        // 🚨 YAHAN BUTTON WAPAS NORMAL (ARROW) BAN JATA HAI
         toggleSendButton(false); 
     }
 });
