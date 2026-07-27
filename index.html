@@ -2165,17 +2165,20 @@ if (canvasToggle) {
 
            // --- YEH NAYA CODE HAI (OLD chatForm LISTENER KO REPLACE KAREIN) ---
 
+ // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER (Ise Paste Karein) 🚨 ---
+
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 🚨 1. Agar AI pehle se generate kar raha hai, toh use yahan roko (Stop)
+    // 1. 🛑 STOP BUTTON LOGIC: Agar AI pehle se generate kar raha hai, toh use yahan roko
     if (isGenerating) {
-        if (currentAbortController) currentAbortController.abort(); // Backend call cancel
-        typewriterActive = false; // UI animation cancel
-        toggleSendButton(false);
-        typingIndicator.classList.add('hidden');
-        return; // Yahi se wapas laut jao
+        if (currentAbortController) currentAbortController.abort(); // API Call Cancel
+        typewriterActive = false; // UI Animation Cancel
+        toggleSendButton(false);  // Button ko wapas Send (Arrow) bana do
+        typingIndicator.classList.add('hidden'); // Typing dots hide karo
+        return; // Yahi se laut jao
     }
+
     const userMessage = userInput.value.trim();
     
     // Agar message khali hai aur koi file nahi hai, to ruk jao
@@ -2184,47 +2187,37 @@ chatForm.addEventListener('submit', async (e) => {
     synth?.cancel(); // Purana bolna band karo
    
     // --- STEP 1: KEYWORD CHECK (Gemini ko Bypass karne ke liye) ---
-const lowerCaseMessage = userMessage.toLowerCase();
+    const lowerCaseMessage = userMessage.toLowerCase();
+    const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
+                                   lowerCaseMessage.startsWith("create a") ||
+                                   lowerCaseMessage.startsWith("generate a");
 
-// 1. Strong Start keywords (Agar sentence इनसे शुरू हो)
-const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
-                               lowerCaseMessage.startsWith("create a") ||
-                               lowerCaseMessage.startsWith("generate a");
+    const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
+                                (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
 
-// 2. Hindi specific combination (Noun + Verb combination)
-// Jaise "photo banao", "tasveer dikhao"
-const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
-                            (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
-
-
-// Final Check: Toggle ON hai, YA Strong Start hai, YA Hindi Combination hai
-const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
+    const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
 
     // --- STEP 2: IMAGE GENERATION (Direct Call - No Gemini) ---
     if (isImageRequest) {
-        // UI Update
         addMessageToUI('user', userMessage);
         userInput.value = '';
-        createImageToggle.checked = false; // Toggle reset kar do
+        createImageToggle.checked = false; 
         userInput.placeholder = "Yahan type karein ya bolein...";
         
-        // AI ka jawaab (Fake Response taaki user ko lage AI bol raha hai)
         addMessageToUI('model', "Samajh gaya! Main aapke liye yeh shandaar photo bana raha hoon... 🎨");
         const imageBubble = addAILoadingBubble();
         
         try {
-            // Direct Image API call (Gemini quota safe!)
             const base64Image = await generateImage(userMessage);
             renderGeneratedImage(imageBubble, `data:image/png;base64,${base64Image}`);
         } catch (error) {
             console.error(error);
             imageBubble.innerHTML = `<p class="text-red-400">Maaf kijiye, photo banane mein kuch samasya aa gayi.</p>`;
         }
-        return; // Yahi se wapas laut jao, Gemini ke paas mat jao!
+        return; 
     }
 
     // --- STEP 3: NORMAL CHAT (Gemini Call) ---
-    // Agar photo nahi maangi, tabhi Gemini ke paas jao
     addMessageToUI('user', userMessage || `Analyzing file: ${selectedFile.name}`);
     userInput.value = '';
     typingIndicator.classList.remove('hidden');
@@ -2245,16 +2238,31 @@ const isImageRequest = createImageToggle.checked || startsWithImageCommand || ha
     filePreviewContainer.classList.add('hidden');
 
     try {
+        // 🚨 YAHAN BUTTON KO "STOP (LAAL RANG)" MEIN BADLA JATA HAI
+        toggleSendButton(true); 
+
         const aiResponse = await getAIResponse(userMessage, fileData);
         addMessageToHistory('model', aiResponse);
-        handleAIResponse(aiResponse);
+        
+        // Jawab aane ke baad Typewriter shuru karo
+        await handleAIResponse(aiResponse);
+        
     } catch (error) {
-        console.error("Error getting AI response:", error);
-        addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai (Quota ya Server Error).");
+        // Agar Stop dabne se 'AbortError' aaya hai
+        if (error.message === 'AbortError' || error.name === 'AbortError') {
+            addMessageToUI('model', "🛑 <i>Mera jawab yahan par rok diya gaya hai.</i>", false);
+            console.log("Chat stopped by user.");
+        } else {
+            console.error("Error getting AI response:", error);
+            addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai (Quota ya Server Error).");
+        }
     } finally {
         typingIndicator.classList.add('hidden');
+        // 🚨 YAHAN BUTTON WAPAS NORMAL (ARROW) BAN JATA HAI
+        toggleSendButton(false); 
     }
 });
+// -------------------------------------------------------------------------
             
             chatContainer.addEventListener('click', (e) => {
                 const copyBtn = e.target.closest('.copy-btn');
