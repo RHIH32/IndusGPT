@@ -2161,8 +2161,19 @@ if (canvasToggle) {
 
             });
 
-  removeFileButton.addEventListener('click', () => { selectedFile = null; filePreviewContainer.classList.add('hidden'); });
+removeFileButton.addEventListener('click', resetFileSelection);
 
+            createImageToggle.addEventListener('change', () => {
+                userInput.placeholder = createImageToggle.checked ? "Aap kya photo banwana chahte hain?" : "Yahan type karein ya bolein...";
+                optionsPopover.classList.add('hidden');
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!optionsPopover.classList.contains('hidden') && !optionsPopover.contains(e.target) && !optionsMenuButton.contains(e.target)) {
+                    optionsPopover.classList.add('hidden');
+                }
+
+            });
 
   // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
 chatForm.addEventListener('submit', async (e) => {
