@@ -731,6 +731,10 @@ Your subscription payments are handled by our secure third-party payment partner
         let currentAiPersona = localStorage.getItem('indusgpt-persona') || 'Roast';
         let isKanjoosMode = localStorage.getItem('indusgpt-kanjoos') === 'true';
         let isLiveCanvasMode = localStorage.getItem('indusgpt-canvas') === 'true';
+
+        let currentAbortController = null; // API call ko rokne wala remote control
+        let isGenerating = false;          // Kya abhi AI type kar raha hai?
+        let typewriterActive = true;       // UI mein typing effect rokne ke liye
      
     // ==========================================================
 // YEH FINAL AUR SAHI CODE HAI. PURAANE FUNCTIONS KI JAGAH
@@ -1798,11 +1802,28 @@ contentDiv.querySelectorAll('pre').forEach(pre => {
         isDeepResearch: isDeepResearch // <--- New Param
     };
 
-    const response = await fetch('https://raviai-1h96.onrender.com/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error(`API error`);
-    const result = await response.json();
-    return result.text;
-}
+     currentAbortController = new AbortController();
+
+    try {
+        const response = await fetch('https://raviai-1h96.onrender.com/api/generate', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload),
+            signal: currentAbortController.signal // 🔴 YEH LINE REQUEST KO ROKNE KA KAAM KARTI HAI
+        });
+
+        if (!response.ok) throw new Error(`API error`);
+        const result = await response.json();
+        return result.text;
+        
+    } catch (error) {
+        // Agar user ne STOP dabaya, toh 'AbortError' aayega
+        if (error.name === 'AbortError' || error.message === 'AbortError') {
+            throw new Error("AbortError"); 
+        }
+        throw error;
+    }
+  };
 
        // ✅ UPDATED generateImage (No Auto-Enhancement)
     async function generateImage(prompt) {
@@ -2146,6 +2167,15 @@ if (canvasToggle) {
 
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // 🚨 1. Agar AI pehle se generate kar raha hai, toh use yahan roko (Stop)
+    if (isGenerating) {
+        if (currentAbortController) currentAbortController.abort(); // Backend call cancel
+        typewriterActive = false; // UI animation cancel
+        toggleSendButton(false);
+        typingIndicator.classList.add('hidden');
+        return; // Yahi se wapas laut jao
+    }
     const userMessage = userInput.value.trim();
     
     // Agar message khali hai aur koi file nahi hai, to ruk jao
