@@ -4,7 +4,9 @@ IndusGPT is not just another boring AI chatbot. It is a highly intelligent, cult
 
 Whether you want to generate code, create images, get roasted by your AI, or talk to it in Bhojpuri — IndusGPT does it all!
 
-![IndusGPT Meme Generator](IndusGPT_Meme_1785091082976.jpg) 
+
+![Uploading IndusGPT_Meme_1785123211058.png…]()
+
 *(Screenshot of the Viral Meme Card Generator feature)*
 
 ## ✨ Key Features & USPs
