@@ -500,13 +500,8 @@ code {
             <!-- Footer -->
             <footer class="footer p-0 z-20 w-full bg-transparent">
                 
-                <div id="typing-indicator" class="px-4 pb-2 hidden">
-                    <div class="flex items-center">
-                        <div class="bg-[var(--bg-tertiary)] p-3 rounded-2xl rounded-bl-none text-[var(--text-primary)]">
-                            <div class="typing-indicator"><span></span><span></span><span></span></div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Purana loader hata diya gaya hai -->
+                <div id="typing-indicator" class="hidden"></div>
                 
                 <div id="file-preview-container" class="px-4 pb-2 hidden">
                     <div class="bg-gray-700/80 backdrop-blur text-white inline-flex items-center text-sm rounded-full px-4 py-2 shadow-lg border border-gray-600">
@@ -720,7 +715,6 @@ Your subscription payments are handled by our secure third-party payment partner
         let currentUserEmail = null;
         let isMuted = false;
         let hindiVoice = null;
-        let selectedFile = null; 
         let touchStartX = 0;
         let touchStartY = 0;
         let currentPlayingBtn = null;
@@ -731,7 +725,14 @@ Your subscription payments are handled by our secure third-party payment partner
         let currentAiPersona = localStorage.getItem('indusgpt-persona') || 'Roast';
         let isKanjoosMode = localStorage.getItem('indusgpt-kanjoos') === 'true';
         let isLiveCanvasMode = localStorage.getItem('indusgpt-canvas') === 'true';
-     
+
+        let currentAbortController = null; // API call ko rokne wala remote control
+        let isGenerating = false;          // Kya abhi AI type kar raha hai?
+        let typewriterActive = true;       // UI mein typing effect rokne ke liye
+        
+        let selectedFile = null; 
+        let currentAttachedFile = null; // Naya variable
+        let isFileUploading = false;    // Upload status track karne ke liye
     // ==========================================================
 // YEH FINAL AUR SAHI CODE HAI. PURAANE FUNCTIONS KI JAGAH
 // IS POORE BLOCK KO PASTE KAREIN.
@@ -1323,17 +1324,37 @@ micButton.addEventListener('click', () => {
             }
         }
 
-        function addAILoadingBubble() {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex justify-start';
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble p-3 rounded-2xl ai-bubble';
-            bubble.innerHTML = `<div class="image-loader"><span></span><span></span><span></span></div>`;
-            wrapper.appendChild(bubble);
-            chatContainer.appendChild(wrapper);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return bubble;
-        }
+       // --- 💬 NAYA LOADING BUBBLE (Jo hawa mein nahi udega) ---
+function addAILoadingBubble() {
+    // Pehle se agar koi loader hai, toh use hata do (Safe check)
+    const existingLoader = document.getElementById('temp-loading-bubble');
+    if (existingLoader) {
+        existingLoader.remove();
+    }
+
+    const wrapper = document.createElement('div');
+    // ID di taaki isko baad mein easily delete kar sakein
+    wrapper.id = 'temp-loading-bubble'; 
+    wrapper.className = 'flex justify-start w-full mb-4'; 
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble py-4 px-4 w-full text-[var(--text-primary)] ai-bubble flex items-center'; 
+    
+    bubble.innerHTML = `
+        <div class="typing-indicator flex items-center justify-start gap-1.5 h-6">
+            <span class="block h-2 w-2 bg-[var(--text-secondary)] rounded-full animate-[bounce_1.4s_infinite_ease-in-out_both] delay-[-0.32s]"></span>
+            <span class="block h-2 w-2 bg-[var(--text-secondary)] rounded-full animate-[bounce_1.4s_infinite_ease-in-out_both] delay-[-0.16s]"></span>
+            <span class="block h-2 w-2 bg-[var(--text-secondary)] rounded-full animate-[bounce_1.4s_infinite_ease-in-out_both]"></span>
+        </div>
+    `;
+    
+    wrapper.appendChild(bubble);
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.appendChild(wrapper);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    // Bubble wapas nahi karna, hum wrapper id se delete kar lenge
+}
         
        // --- YEH NAYA FUNCTION PASTE KAREIN ---
         function renderGeneratedImage(bubbleElement, imageUrl) {
@@ -1798,10 +1819,27 @@ contentDiv.querySelectorAll('pre').forEach(pre => {
         isDeepResearch: isDeepResearch // <--- New Param
     };
 
-    const response = await fetch('https://raviai-1h96.onrender.com/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error(`API error`);
-    const result = await response.json();
-    return result.text;
+   currentAbortController = new AbortController();
+
+    try {
+        const response = await fetch('https://raviai-1h96.onrender.com/api/generate', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload),
+            signal: currentAbortController.signal // 🔴 YEH LINE REQUEST KO ROKNE KA KAAM KARTI HAI
+        });
+
+        if (!response.ok) throw new Error(`API error`);
+        const result = await response.json();
+        return result.text;
+        
+    } catch (error) {
+        // Agar user ne STOP dabaya, toh 'AbortError' aayega
+        if (error.name === 'AbortError' || error.message === 'AbortError') {
+            throw new Error("AbortError"); 
+        }
+        throw error;
+    }
 }
 
        // ✅ UPDATED generateImage (No Auto-Enhancement)
@@ -2117,87 +2155,141 @@ if (canvasToggle) {
 
             optionsMenuButton.addEventListener('click', (e) => { e.stopPropagation(); optionsPopover.classList.toggle('hidden'); });
             
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    selectedFile = file;
-                    filePreviewName.textContent = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
-                    filePreviewContainer.classList.remove('hidden');
-                    optionsPopover.classList.add('hidden');
-                }
-                e.target.value = null;
-            });
+           // Naya File Input Listener (Fast & Safe)
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        isFileUploading = true;
+        sendButton.style.opacity = '0.5'; // Jab tak file load ho, button dim rahega
+        
+        // UI mein "Loading..." dikhayein
+        filePreviewName.textContent = "Loading... " + (file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name);
+        filePreviewContainer.classList.remove('hidden');
+        optionsPopover.classList.add('hidden');
 
-            createImageToggle.addEventListener('change', () => {
-                userInput.placeholder = createImageToggle.checked ? "Aap kya photo banwana chahte hain?" : "Yahan type karein ya bolein...";
-                optionsPopover.classList.add('hidden');
-            });
+        try {
+            // File ko select hote hi background mein padh lenge
+            const fileData = await readFileAsBase64(file);
+            currentAttachedFile = {
+                name: file.name,
+                type: file.type,
+                base64: fileData.base64
+            };
             
-            document.addEventListener('click', (e) => {
-                if (!optionsPopover.classList.contains('hidden') && !optionsPopover.contains(e.target) && !optionsMenuButton.contains(e.target)) {
-                    optionsPopover.classList.add('hidden');
-                }
+            // Padhne ke baad asli naam dikhayein
+            filePreviewName.textContent = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+        } catch (error) {
+            console.error("File error:", error);
+            alert("File load nahi ho payi.");
+            resetFileSelection();
+        } finally {
+            isFileUploading = false;
+            sendButton.style.opacity = '1'; // Button wapas normal
+        }
+    }
+    e.target.value = null; // Input reset
+});
 
-            });
+// File Remove Karne Ka Proper Function
+function resetFileSelection() {
+    currentAttachedFile = null;
+    selectedFile = null;
+    filePreviewContainer.classList.add('hidden');
+}
 
-            removeFileButton.addEventListener('click', () => { selectedFile = null; filePreviewContainer.classList.add('hidden'); });
+removeFileButton.addEventListener('click', resetFileSelection);
 
+// Send button ko Send aur Stop ke beech switch karne ke liye
+function toggleSendButton(isProcessing) {
+    if (isProcessing) {
+        isGenerating = true;
+        sendButton.innerHTML = `<svg class="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>`; // Square STOP icon
+        sendButton.classList.replace('text-black', 'text-red-500');
+    } else {
+        isGenerating = false;
+        sendButton.innerHTML = `<svg class="h-6 w-6 transform rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
+        sendButton.classList.replace('text-red-500', 'text-black');
+    }
+}
            // --- YEH NAYA CODE HAI (OLD chatForm LISTENER KO REPLACE KAREIN) ---
 
+  
+           // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const userMessage = userInput.value.trim();
-    
-    // Agar message khali hai aur koi file nahi hai, to ruk jao
-    if (!userMessage && !selectedFile) return;
 
-    synth?.cancel(); // Purana bolna band karo
-   
-    // --- STEP 1: KEYWORD CHECK (Gemini ko Bypass karne ke liye) ---
-const lowerCaseMessage = userMessage.toLowerCase();
-
-// 1. Strong Start keywords (Agar sentence इनसे शुरू हो)
-const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
-                               lowerCaseMessage.startsWith("create a") ||
-                               lowerCaseMessage.startsWith("generate a");
-
-// 2. Hindi specific combination (Noun + Verb combination)
-// Jaise "photo banao", "tasveer dikhao"
-const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
-                            (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
-
-
-// Final Check: Toggle ON hai, YA Strong Start hai, YA Hindi Combination hai
-const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
-
-    // --- STEP 2: IMAGE GENERATION (Direct Call - No Gemini) ---
-    if (isImageRequest) {
-        // UI Update
-        addMessageToUI('user', userMessage);
-        userInput.value = '';
-        createImageToggle.checked = false; // Toggle reset kar do
-        userInput.placeholder = "Yahan type karein ya bolein...";
-        
-        // AI ka jawaab (Fake Response taaki user ko lage AI bol raha hai)
-        addMessageToUI('model', "Samajh gaya! Main aapke liye yeh shandaar photo bana raha hoon... 🎨");
-        const imageBubble = addAILoadingBubble();
-        
-        try {
-            // Direct Image API call (Gemini quota safe!)
-            const base64Image = await generateImage(userMessage);
-            renderGeneratedImage(imageBubble, `data:image/png;base64,${base64Image}`);
-        } catch (error) {
-            console.error(error);
-            imageBubble.innerHTML = `<p class="text-red-400">Maaf kijiye, photo banane mein kuch samasya aa gayi.</p>`;
+    // 1. 🛑 STOP BUTTON LOGIC
+    if (isGenerating) {
+        console.log("Stop button pressed!");
+        if (currentAbortController) {
+            currentAbortController.abort(); // API Call Cancel
         }
-        return; // Yahi se wapas laut jao, Gemini ke paas mat jao!
+        typewriterActive = false; // UI Animation Cancel
+        
+        // Loader hatao
+        const loader = document.getElementById('temp-loading-bubble');
+        if (loader) loader.remove();
+        
+        toggleSendButton(false);  // Button wapas Arrow
+        typingIndicator.classList.add('hidden'); 
+        return; // Naya message mat bhejo
     }
 
-    // --- STEP 3: NORMAL CHAT (Gemini Call) ---
-    // Agar photo nahi maangi, tabhi Gemini ke paas jao
+    const userMessage = userInput.value.trim();
+    if (!userMessage && !selectedFile) return;
+
+    synth?.cancel(); 
+    userScrolledUp = false; // Naye message par auto-scroll on
+
+    // --- STEP 1: KEYWORD CHECK ---
+    const lowerCaseMessage = userMessage.toLowerCase();
+    const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
+                                   lowerCaseMessage.startsWith("create a") ||
+                                   lowerCaseMessage.startsWith("generate a");
+    const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
+                                (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
+    const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
+
+    // --- STEP 2: IMAGE GENERATION ---
+    if (isImageRequest) {
+        addMessageToUI('user', userMessage);
+        userInput.value = '';
+        createImageToggle.checked = false; 
+        userInput.placeholder = "Yahan type karein ya bolein...";
+        addMessageToUI('model', "Samajh gaya! Main aapke liye yeh shandaar photo bana raha hoon... 🎨");
+        
+        // Yahan function call kiya jisse ID wala loader ban jayega
+        addAILoadingBubble();
+        
+        try {
+            const base64Image = await generateImage(userMessage);
+            
+            // Asli image aane par purana loader hatao
+            const loader = document.getElementById('temp-loading-bubble');
+            if (loader) loader.remove();
+            
+            // Ek naya fake bubble banakar usme photo daalo
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-start w-full mb-4'; 
+            const imgBubble = document.createElement('div');
+            imgBubble.className = 'message-bubble py-4 px-4 w-full text-[var(--text-primary)] ai-bubble'; 
+            wrapper.appendChild(imgBubble);
+            document.getElementById('chat-container').appendChild(wrapper);
+
+            renderGeneratedImage(imgBubble, `data:image/png;base64,${base64Image}`);
+            document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+
+        } catch (error) {
+            console.error(error);
+            const loader = document.getElementById('temp-loading-bubble');
+            if (loader) loader.innerHTML = `<div class="message-bubble p-3 rounded-2xl ai-bubble"><p class="text-red-400">Maaf kijiye, photo banane mein kuch samasya aa gayi.</p></div>`;
+        }
+        return; 
+    }
+
+    // --- STEP 3: NORMAL CHAT ---
     addMessageToUI('user', userMessage || `Analyzing file: ${selectedFile.name}`);
     userInput.value = '';
-    typingIndicator.classList.remove('hidden');
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
     let fileData = null;
@@ -2215,17 +2307,39 @@ const isImageRequest = createImageToggle.checked || startsWithImageCommand || ha
     filePreviewContainer.classList.add('hidden');
 
     try {
+        // 🚨 BUTTON TURANT LAAL KARO
+        toggleSendButton(true); 
+        
+        // 💬 Dots Wala Loader Dikhaya 
+        addAILoadingBubble();
+
+        // 🧠 AI se jawab manga
         const aiResponse = await getAIResponse(userMessage, fileData);
+        
+        // ✨ Jaise hi jawab mila, us Dots Wale Loader ko DELETE kiya
+        const loader = document.getElementById('temp-loading-bubble');
+        if (loader) loader.remove();
+
         addMessageToHistory('model', aiResponse);
-        handleAIResponse(aiResponse);
+        await handleAIResponse(aiResponse, true, true); 
+        
     } catch (error) {
-        console.error("Error getting AI response:", error);
-        addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai (Quota ya Server Error).");
+        // Agar error aayi toh bhi Dots Wala Loader DELETE karo
+        const loader = document.getElementById('temp-loading-bubble');
+        if (loader) loader.remove();
+
+        if (error.message === 'AbortError' || error.name === 'AbortError') {
+            addMessageToUI('model', "🛑 <i>Mera jawab yahan par rok diya gaya hai.</i>", false);
+        } else {
+            console.error("Error getting AI response:", error);
+            addMessageToUI('model', "Maaf kijiye, kuch takneeki samasya aa gayi hai.");
+        }
     } finally {
         typingIndicator.classList.add('hidden');
+        toggleSendButton(false); 
     }
 });
-            
+// -------------------------------------------------------------------------
             chatContainer.addEventListener('click', (e) => {
                 const copyBtn = e.target.closest('.copy-btn');
                 if (copyBtn) {
