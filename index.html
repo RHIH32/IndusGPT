@@ -1254,75 +1254,127 @@ micButton.addEventListener('click', () => {
         }
 
       // 3rd Argument 'animate = true' add kiya hai
-        async function handleAIResponse(response, shouldSpeak = true, animate = true) {
-            try {
-                const jsonMatch = response.match(/\{[\s\S]*\}/);
-                
-                if (jsonMatch) {
-                    const command = JSON.parse(jsonMatch[0]);
-                    
-                    // === IMAGE GENERATION FIX ===
-                    if (command.action === 'generate_image') {
-                        // Text dikhao (Animation tabhi jab naya message ho)
-                        await addMessageToUI('model', command.response, animate);
-                        
-                        // Image tabhi generate karo jab animate true ho (yani abhi maangi gayi ho)
-                        // History load karte waqt dubara generate nahi karega
-                        if (animate) {
-                            const loadingBubble = addAILoadingBubble();
-                            try {
-                                const base64Image = await generateImage(command.prompt);
-                                renderGeneratedImage(loadingBubble, `data:image/png;base64,${base64Image}`);
-                            } catch (e) {
-                                loadingBubble.innerHTML = `<p class="text-red-400">Photo banane mein samasya aa gayi.</p>`;
-                            }
-                        }
-                        return;
-                    }
+async function handleAIResponse(response, shouldSpeak = true, animate = true) {
+    try {
+        // 🧹 1. AI ki safai (Markdown backticks hatana - The Brahmastra Fix)
+        let cleanResponse = response.replace(/```json/gi, '').replace(/```/gi, '').trim();
+        
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        
+        if (jsonMatch) {
+            const command = JSON.parse(jsonMatch[0]);
+            
+            // === WIDGETS AUR CLEANUP (Naye Features aur Delete Fix) ===
+            if (command.action === 'upgrade_ui' && command.feature_name) {
+                console.log("🚀 UI Command Executed:", command.feature_name);
 
-                    // === OTHER COMMANDS (Google, YouTube etc) ===
-                    let url = '', buttonText = '', buttonIcon = '';
-                    switch (command.action) {
-                        case 'google':
-                            url = `https://www.google.com/search?q=${encodeURIComponent(command.query)}`;
-                            buttonText = 'Google par dekhein';
-                            buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`;
-                            break;
-                        case 'youtube':
-                            url = `https://www.youtube.com/results?search_query=${encodeURIComponent(command.query)}`;
-                            buttonText = 'YouTube par kholein';
-                            buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
-                            break;
-                        case 'whatsapp':
-                            url = `https://wa.me/${command.number}?text=${encodeURIComponent(command.message)}`;
-                            buttonText = 'WhatsApp par bhejein';
-                            buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>`;
-                            break;
-                        case 'call':
-                            url = `tel:${command.number}`;
-                            buttonText = 'Abhi call karein';
-                            buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>`;
-                            break;
-                        default: throw new Error("Unknown command");
-                    }
-                    
-                    addMessageWithAction(command.response, buttonText, buttonIcon, url);
-                    // Agar message naya hai (animate=true), tabhi bolo
-                   
-
-                } else {
-                    throw new Error("No JSON");
+                // A. Agar CSS aayi hai, toh Inject karo
+                if (command.css) {
+                    const style = document.createElement('style');
+                    style.innerHTML = command.css;
+                    document.head.appendChild(style);
                 }
 
-            } catch (error) {
-                // === TEXT MESSAGE FIX ===
-                // Yahan hum 'animate' variable pass kar rahe hain (true ya false)
-                await addMessageToUI('model', response, animate); 
-                
-                // Agar message naya hai, tabhi bolo
-               
+                // B. Agar HTML aaya hai, toh Render karo
+                if (command.html) {
+                    const wrapper = document.createElement('div');
+                    wrapper.id = 'upgrade-html-' + command.feature_name;
+                    wrapper.innerHTML = command.html;
+                    wrapper.className = "flex justify-start w-full mb-4"; 
+                    const targetElement = document.querySelector(command.target_element) || document.getElementById('chat-container');
+                    targetElement.appendChild(wrapper);
+                }
+
+                // C. JavaScript Execute (Widgets banane ya Delete karne ka logic)
+                if (command.js) {
+                    setTimeout(() => {
+                        try {
+                            const script = document.createElement('script');
+                            script.innerHTML = command.js;
+                            document.body.appendChild(script);
+                        } catch(e) {
+                            console.error("Widget JS Error:", e);
+                        }
+                    }, 50);
+                }
+
+                // D. AI ka Text Response (Jaise Delete hone par message aaye)
+                if (command.response) {
+                    await addMessageToUI('model', command.response, animate);
+                }
+
+                setTimeout(() => {
+                    const chat = document.getElementById('chat-container');
+                    if (chat) chat.scrollTop = chat.scrollHeight;
+                }, 100);
+
+                return; // 🛑 IMPORTANT: Code yahin ruk jayega, aage nahi jayega!
             }
+
+            // === 🧬 APP SINGULARITY FIX (Purana Feature) ===
+            if (command.action === 'upgrade_ui' && command.code) {
+                applyAppUpgrade(command);
+                saveAppUpgrade(command);
+                const successMessage = `✨ **Singularity Protocol Activated!** \nMaine khud ko reprogram kar liya hai aur naya feature **"${command.feature_name}"** live install kar diya hai. Check karo! 🚀`;
+                await addMessageToUI('model', successMessage, animate);
+                return;
+            }
+
+            // === IMAGE GENERATION FIX ===
+            if (command.action === 'generate_image') {
+                await addMessageToUI('model', command.response, animate);
+                if (animate) {
+                    const loadingBubble = addAILoadingBubble();
+                    try {
+                        const base64Image = await generateImage(command.prompt);
+                        renderGeneratedImage(loadingBubble, `data:image/png;base64,${base64Image}`);
+                    } catch (e) {
+                        loadingBubble.innerHTML = `<p class="text-red-400">Photo banane mein samasya aa gayi.</p>`;
+                    }
+                }
+                return;
+            }
+
+            // === OTHER COMMANDS (Google, YouTube, WhatsApp etc) ===
+            let url = '', buttonText = '', buttonIcon = '';
+            
+            switch (command.action) {
+                case 'google':
+                    url = `https://www.google.com/search?q=${encodeURIComponent(command.query)}`;
+                    buttonText = 'Google par dekhein';
+                    buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`;
+                    break;
+                case 'youtube':
+                    url = `https://www.youtube.com/results?search_query=${encodeURIComponent(command.query)}`;
+                    buttonText = 'YouTube par kholein';
+                    buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                    break;
+                case 'whatsapp':
+                    url = `https://wa.me/${command.number}?text=${encodeURIComponent(command.message)}`;
+                    buttonText = 'WhatsApp par bhejein';
+                    buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>`;
+                    break;
+                case 'call':
+                    url = `tel:${command.number}`;
+                    buttonText = 'Abhi call karein';
+                    buttonIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>`;
+                    break;
+                default: 
+                    throw new Error("Unknown action: " + command.action);
+            }
+            
+            addMessageWithAction(command.response, buttonText, buttonIcon, url);
+
+        } else {
+            throw new Error("No JSON found");
         }
+
+    } catch (error) {
+        // === TEXT MESSAGE FIX ===
+        console.log("No valid JSON, treating as normal text message.");
+        await addMessageToUI('model', response, animate); 
+    }
+}
 
        // --- 💬 NAYA LOADING BUBBLE (Jo hawa mein nahi udega) ---
 function addAILoadingBubble() {
@@ -2214,7 +2266,7 @@ function toggleSendButton(isProcessing) {
            // --- YEH NAYA CODE HAI (OLD chatForm LISTENER KO REPLACE KAREIN) ---
 
   
-           // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
+  // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -2235,14 +2287,34 @@ chatForm.addEventListener('submit', async (e) => {
         return; // Naya message mat bhejo
     }
 
-    const userMessage = userInput.value.trim();
-    if (!userMessage && !selectedFile) return;
+    const rawUserMessage = userInput.value.trim(); // Yahan rawUserMessage use kar rahe
+    if (!rawUserMessage && !selectedFile) return;
 
     synth?.cancel(); 
     userScrolledUp = false; // Naye message par auto-scroll on
 
-    // --- STEP 1: KEYWORD CHECK ---
-    const lowerCaseMessage = userMessage.toLowerCase();
+    // --- STEP 1: SECRET WIDGET RULES (Hologram, Timer, Music, Delete) ---
+    let userMessageToAI = rawUserMessage;
+    const lowerCaseMessage = rawUserMessage.toLowerCase();
+
+    // 🎵 MUSIC PLAYER RULE
+    if (lowerCaseMessage.includes('gaana') || lowerCaseMessage.includes('music') || lowerCaseMessage.includes('song') || lowerCaseMessage.includes('chalao') || lowerCaseMessage.includes('player')) {
+        const secretMusicRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON: {"action": "upgrade_ui", "feature_name": "indus_full_dj_inline", "target_element": "#chat-container", "css": "#indus-full-dj { position:relative; background:rgba(10,10,15,0.95); border:1px solid #22c55e; padding:15px; border-radius:15px; box-shadow:0 10px 30px rgba(0,255,100,0.2); width:100%; max-width: 280px; backdrop-filter:blur(10px); color:white; font-family:sans-serif; margin-top:10px; margin-bottom:15px; display:flex; flex-direction:column; gap:10px; align-self: flex-start; }", "html": "<div id='indus-full-dj'><div style='display:flex; justify-content:space-between; font-weight:bold; font-size:14px; border-bottom:1px solid #334155; padding-bottom:8px;'><span style='color:#22c55e;'>🎧 Indus Full DJ</span><button onclick=\\"document.getElementById('upgrade-html-indus_full_dj_inline').remove(); if(window.indusAudio) window.indusAudio.pause();\\" style='background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;'>✖</button></div><div id='dj-full-status' style='font-size:11px; color:#94a3b8; margin-top:2px;'>Search any song...</div><div style='display:flex; gap:5px; margin-top:5px;'><input id='dj-full-query' type='text' placeholder='e.g. Tum Hi Ho...' style='flex:1; padding:8px; border-radius:8px; border:none; outline:none; color:black; font-size:12px;'><button id='dj-full-btn' style='background:#22c55e; color:black; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>🔍 Play</button></div></div>", "js": "document.getElementById('dj-full-btn').onclick = function() { var query = document.getElementById('dj-full-query').value; if(!query) return; var btn = this; btn.innerText = '⏳...'; document.getElementById('dj-full-status').innerHTML = 'Fetching preview...'; if(window.indusAudio) window.indusAudio.pause(); window.indusAudio = new Audio('/api/play-music?song=' + encodeURIComponent(query)); window.indusAudio.play().then(() => { btn.innerText = '🔍 Play'; document.getElementById('dj-full-status').innerHTML = '🎵 <span style=\\"color:#22c55e\\">Playing!</span>'; }).catch(e => { btn.innerText = '🔍 Play'; document.getElementById('dj-full-status').innerHTML = '❌ Error'; }); }; setTimeout(() => { var chat = document.getElementById('chat-container'); if(chat) chat.scrollTop = chat.scrollHeight; }, 100);"}]`;
+        userMessageToAI = rawUserMessage + secretMusicRule;
+    }
+    // ⏱️ TIMER RULE
+    else if (lowerCaseMessage.includes('timer') || lowerCaseMessage.includes('study') || lowerCaseMessage.includes('pomodoro')) {
+        const secretTimerRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON: {"action": "upgrade_ui", "feature_name": "study_timer_inline", "target_element": "#chat-container", "css": "#indus-timer { position:relative; background:rgba(15,23,42,0.95); border:1px solid #6366f1; padding:15px; border-radius:16px; box-shadow:0 10px 30px rgba(99,102,241,0.3); color:white; font-family:sans-serif; width:100%; max-width:240px; backdrop-filter:blur(10px); text-align:center; margin-top:10px; margin-bottom:15px; align-self: flex-start; } #timer-display { font-size:32px; font-weight:bold; font-family:monospace; color:#818cf8; margin:10px 0; }", "html": "<div id='indus-timer'><div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:6px;'><span style='font-size:12px; font-weight:bold; color:#a5b4fc;'>⏱️ Study Timer</span><button onclick=\\"document.getElementById('upgrade-html-study_timer_inline').remove(); if(window.indusTimer) clearInterval(window.indusTimer);\\" style='background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px;'>✖</button></div><div id='timer-display'>25:00</div><div style='display:flex; gap:6px; justify-content:center;'><button id='timer-start-btn' style='background:#6366f1; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>▶️ Start</button><button id='timer-reset-btn' style='background:#334155; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>🔄 Reset</button></div></div>", "js": "var seconds = 25 * 60; function updateDisp() { var m = Math.floor(seconds / 60); var s = seconds % 60; document.getElementById('timer-display').innerText = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s; } document.getElementById('timer-start-btn').onclick = function() { var btn = this; if(window.indusTimer) { clearInterval(window.indusTimer); window.indusTimer = null; btn.innerText = '▶️ Start'; btn.style.background = '#6366f1'; } else { btn.innerText = '⏸️ Pause'; btn.style.background = '#eab308'; window.indusTimer = setInterval(function() { if(seconds <= 0) { clearInterval(window.indusTimer); window.indusTimer = null; btn.innerText = '▶️ Start'; alert('⏰ Time is up!'); } else { seconds--; updateDisp(); } }, 1000); } }; document.getElementById('timer-reset-btn').onclick = function() { if(window.indusTimer) { clearInterval(window.indusTimer); window.indusTimer = null; } seconds = 25 * 60; updateDisp(); document.getElementById('timer-start-btn').innerText = '▶️ Start'; document.getElementById('timer-start-btn').style.background = '#6366f1'; }; setTimeout(() => { var chat = document.getElementById('chat-container'); if(chat) chat.scrollTop = chat.scrollHeight; }, 100);"}]`;
+        userMessageToAI = rawUserMessage + secretTimerRule;
+    }
+
+   // 🧹 WIDGET DELETE RULE (ALL WIDGETS CLEAR)
+    else if (lowerCaseMessage.includes('delete') || lowerCaseMessage.includes('hatao') || lowerCaseMessage.includes('clear')) {
+        const secretDeleteRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON. Do not add markdown: {"action": "upgrade_ui", "feature_name": "cleanup_all_widgets", "target_element": "#chat-container", "css": "", "html": "", "js": "['upgrade-html-hardware_hologram', 'upgrade-html-indus_full_dj_inline', 'upgrade-html-study_timer_inline'].forEach(id => { let el = document.getElementById(id); if(el) el.remove(); }); if(window.holoTilt) window.removeEventListener('deviceorientation', window.holoTilt); if(window.indusAudio) window.indusAudio.pause(); if(window.indusTimer) clearInterval(window.indusTimer);", "response": "🧹 All active modules cleared successfully.Workspace reset."}]`;
+        userMessageToAI = rawUserMessage + secretDeleteRule;
+    }
+
+    // --- STEP 2: IMAGE KEYWORD CHECK ---
     const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
                                    lowerCaseMessage.startsWith("create a") ||
                                    lowerCaseMessage.startsWith("generate a");
@@ -2250,9 +2322,9 @@ chatForm.addEventListener('submit', async (e) => {
                                 (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
     const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
 
-    // --- STEP 2: IMAGE GENERATION ---
+    // --- STEP 3: IMAGE GENERATION ---
     if (isImageRequest) {
-        addMessageToUI('user', userMessage);
+        addMessageToUI('user', rawUserMessage);
         userInput.value = '';
         createImageToggle.checked = false; 
         userInput.placeholder = "Yahan type karein ya bolein...";
@@ -2262,7 +2334,7 @@ chatForm.addEventListener('submit', async (e) => {
         addAILoadingBubble();
         
         try {
-            const base64Image = await generateImage(userMessage);
+            const base64Image = await generateImage(rawUserMessage);
             
             // Asli image aane par purana loader hatao
             const loader = document.getElementById('temp-loading-bubble');
@@ -2287,8 +2359,8 @@ chatForm.addEventListener('submit', async (e) => {
         return; 
     }
 
-    // --- STEP 3: NORMAL CHAT ---
-    addMessageToUI('user', userMessage || `Analyzing file: ${selectedFile.name}`);
+    // --- STEP 4: NORMAL CHAT ---
+    addMessageToUI('user', rawUserMessage || `Analyzing file: ${selectedFile.name}`);
     userInput.value = '';
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -2302,7 +2374,8 @@ chatForm.addEventListener('submit', async (e) => {
         }
     }
     
-    addMessageToHistory('user', userMessage, selectedFile ? {name: selectedFile.name, type: selectedFile.type} : null);
+    // History mein user ka asli text (bina secret rule ke) save karna hai
+    addMessageToHistory('user', rawUserMessage, selectedFile ? {name: selectedFile.name, type: selectedFile.type} : null);
     selectedFile = null;
     filePreviewContainer.classList.add('hidden');
 
@@ -2313,8 +2386,8 @@ chatForm.addEventListener('submit', async (e) => {
         // 💬 Dots Wala Loader Dikhaya 
         addAILoadingBubble();
 
-        // 🧠 AI se jawab manga
-        const aiResponse = await getAIResponse(userMessage, fileData);
+        // 🧠 AI se jawab manga (Secret Dhamki ke sath 'userMessageToAI' bhej rahe hain)
+        const aiResponse = await getAIResponse(userMessageToAI, fileData);
         
         // ✨ Jaise hi jawab mila, us Dots Wale Loader ko DELETE kiya
         const loader = document.getElementById('temp-loading-bubble');
