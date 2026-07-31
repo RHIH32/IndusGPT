@@ -136,5 +136,43 @@ app.post('/api/generate-image', async (req, res) => {
     }
 });
 
+// ==========================================
+// 🎵 INDUS MUSIC API (APPLE MUSIC 30-SEC PREVIEW)
+// ==========================================
+app.get('/api/play-music', async (req, res) => {
+    try {
+        const songName = req.query.song;
+        if (!songName) return res.status(400).send("Gaane ka naam bhej bhai!");
+
+        console.log(`🔍 Searching Apple Music for: ${songName}`);
+
+        // 1. Apple Music (iTunes) API se direct search (100% Stable & Free)
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(songName)}&limit=1&entity=song`;
+        const response = await axios.get(itunesUrl);
+        
+        const results = response.data.results;
+
+        // Agar gaana na mile
+        if (!results || results.length === 0) {
+            console.log("❌ Gaana nahi mila");
+            return res.status(404).send("Gaana nahi mila!");
+        }
+
+        const track = results[0];
+        const previewUrl = track.previewUrl; // Apple ka direct 30-sec audio link
+
+        console.log(`▶️ Found: ${track.trackName} by ${track.artistName}`);
+        console.log(`🎵 Playing 30-sec Preview...`);
+
+        // 2. Direct Apple ke CDN par redirect kar do (Lightning Fast & No Server Load)
+        res.redirect(previewUrl);
+
+    } catch (error) {
+        console.error("❌ Music API Error:", error.message);
+        res.status(500).send("Server Error");
+    }
+});
+
+
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
