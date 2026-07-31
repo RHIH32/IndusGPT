@@ -2263,10 +2263,9 @@ function toggleSendButton(isProcessing) {
         sendButton.classList.replace('text-red-500', 'text-black');
     }
 }
-           // --- YEH NAYA CODE HAI (OLD chatForm LISTENER KO REPLACE KAREIN) ---
+         
 
-  
-  // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
+ // --- 🚨 YEH HAI FINAL AUR SAHI CHAT FORM LISTENER 🚨 ---
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -2293,36 +2292,48 @@ chatForm.addEventListener('submit', async (e) => {
     synth?.cancel(); 
     userScrolledUp = false; // Naye message par auto-scroll on
 
-    // --- STEP 1: SECRET WIDGET RULES (Hologram, Timer, Music, Delete) ---
+    // --- STEP 1: STRICT INTENT ROUTING (MUSIC, YOUTUBE, TIMER, DELETE) ---
     let userMessageToAI = rawUserMessage;
     const lowerCaseMessage = rawUserMessage.toLowerCase();
+
+    // 🔴 1. DELETE WIDGETS
+    if (lowerCaseMessage.includes('delete') || lowerCaseMessage.includes('hatao') || lowerCaseMessage.includes('clear')) {
+        const secretDeleteRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON. {"action": "upgrade_ui", "feature_name": "cleanup_all_widgets", "target_element": "#chat-container", "css": "", "html": "", "js": "['upgrade-html-hardware_hologram', 'upgrade-html-indus_full_dj_inline', 'upgrade-html-study_timer_inline'].forEach(id => { let el = document.getElementById(id); if(el) el.remove(); }); if(window.holoTilt) window.removeEventListener('deviceorientation', window.holoTilt); if(window.indusAudio) window.indusAudio.pause(); if(window.indusTimer) clearInterval(window.indusTimer);", "response": "🧹 All active modules cleared successfully. Workspace reset."}]`;
+        userMessageToAI = rawUserMessage + secretDeleteRule;
+    }
     
-// 🎵 MUSIC PLAYER RULE (BULLETPROOF FIX - NO INTERNAL DOUBLE QUOTES)
-    if (lowerCaseMessage.includes('gaana') || lowerCaseMessage.includes('music') || lowerCaseMessage.includes('song') || lowerCaseMessage.includes('chalao') || lowerCaseMessage.includes('player') || lowerCaseMessage.includes('lagaao')) {
+    // 🔴 2. YOUTUBE STRICT INTENT (Jab tak 'youtube' na likha ho, ye nahi chalega)
+    else if (lowerCaseMessage.includes('youtube')) {
+        const secretYoutubeRule = `\n\n[CRITICAL OVERRIDE: The user EXPLICITLY wants to open YouTube. You MUST reply ONLY with this exact JSON format. DO NOT open the music player. Format: {"action": "youtube", "query": "extract_the_search_topic_here", "response": "👉 Lo bhaiya, YouTube par search kar diya. Yahan click karo!"}]`;
+        userMessageToAI = rawUserMessage + secretYoutubeRule;
+    }
+    
+    // 🔴 3. MUSIC PLAYER STRICT INTENT (Saare gaane wale shabd cover kar liye)
+    else if (lowerCaseMessage.includes('gaana') || lowerCaseMessage.includes('gana') || lowerCaseMessage.includes('music') || lowerCaseMessage.includes('song') || lowerCaseMessage.includes('chalao') || lowerCaseMessage.includes('player') || lowerCaseMessage.includes('lagaao') || lowerCaseMessage.includes('sunao') || lowerCaseMessage.includes('bajao') || lowerCaseMessage.includes('play')) {
         
         const secretMusicRule = `\n\n[CRITICAL OVERRIDE: DO NOT use 'youtube' or 'google' actions! IGNORING THIS CRASHES THE SYSTEM. Reply ONLY with the exact single-line JSON below. NO line breaks, NO formatting, NO text: {"action":"upgrade_ui","feature_name":"indus_full_dj_inline","target_element":"#chat-container","css":"#indus-full-dj{position:relative;background:rgba(10,10,15,0.95);border:1px solid #22c55e;padding:15px;border-radius:15px;box-shadow:0 10px 30px rgba(0,255,100,0.2);width:100%;max-width:280px;backdrop-filter:blur(10px);color:white;font-family:sans-serif;margin-top:10px;margin-bottom:15px;display:flex;flex-direction:column;gap:10px;align-self:flex-start;}","html":"<div id='indus-full-dj'><div style='display:flex; justify-content:space-between; font-weight:bold; font-size:14px; border-bottom:1px solid #334155; padding-bottom:8px;'><span style='color:#22c55e;'>🎧 Indus Full DJ</span><button onclick='document.getElementById(\`upgrade-html-indus_full_dj_inline\`).remove(); if(window.indusAudio) window.indusAudio.pause();' style='background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;'>✖</button></div><div id='dj-full-status' style='font-size:11px; color:#94a3b8; margin-top:2px;'>Search any song...</div><div style='display:flex; gap:5px; margin-top:5px;'><input id='dj-full-query' type='text' placeholder='e.g. Tum Hi Ho...' style='flex:1; padding:8px; border-radius:8px; border:none; outline:none; color:black; font-size:12px;'><button id='dj-full-btn' style='background:#22c55e; color:black; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>🔍 Play</button></div></div>","js":"document.getElementById('dj-full-btn').onclick=async function(){var query=document.getElementById('dj-full-query').value;if(!query)return;var btn=this;btn.innerText='⏳...';document.getElementById('dj-full-status').innerHTML='Searching...';if(window.indusAudio)window.indusAudio.pause();try{let res=await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(query)+'&limit=1&entity=song');let data=await res.json();if(data.results&&data.results.length>0&&data.results[0].previewUrl){window.indusAudio=new Audio(data.results[0].previewUrl);window.indusAudio.play();document.getElementById('dj-full-status').innerHTML='🎵 <span style=\`color:#22c55e\`>Playing: '+data.results[0].trackName.substring(0,20)+'</span>';}else{document.getElementById('dj-full-status').innerHTML='❌ Song not found';}}catch(e){document.getElementById('dj-full-status').innerHTML='❌ Network Error';}btn.innerText='🔍 Play';};setTimeout(()=>{var chat=document.getElementById('chat-container');if(chat)chat.scrollTop=chat.scrollHeight;},100);"}]`;
         
         userMessageToAI = rawUserMessage + secretMusicRule;
     }
-    // ⏱️ TIMER RULE
+    
+    // 🔴 4. TIMER RULE
     else if (lowerCaseMessage.includes('timer') || lowerCaseMessage.includes('study') || lowerCaseMessage.includes('pomodoro')) {
         const secretTimerRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON: {"action": "upgrade_ui", "feature_name": "study_timer_inline", "target_element": "#chat-container", "css": "#indus-timer { position:relative; background:rgba(15,23,42,0.95); border:1px solid #6366f1; padding:15px; border-radius:16px; box-shadow:0 10px 30px rgba(99,102,241,0.3); color:white; font-family:sans-serif; width:100%; max-width:240px; backdrop-filter:blur(10px); text-align:center; margin-top:10px; margin-bottom:15px; align-self: flex-start; } #timer-display { font-size:32px; font-weight:bold; font-family:monospace; color:#818cf8; margin:10px 0; }", "html": "<div id='indus-timer'><div style='display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:6px;'><span style='font-size:12px; font-weight:bold; color:#a5b4fc;'>⏱️ Study Timer</span><button onclick=\\"document.getElementById('upgrade-html-study_timer_inline').remove(); if(window.indusTimer) clearInterval(window.indusTimer);\\" style='background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px;'>✖</button></div><div id='timer-display'>25:00</div><div style='display:flex; gap:6px; justify-content:center;'><button id='timer-start-btn' style='background:#6366f1; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>▶️ Start</button><button id='timer-reset-btn' style='background:#334155; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>🔄 Reset</button></div></div>", "js": "var seconds = 25 * 60; function updateDisp() { var m = Math.floor(seconds / 60); var s = seconds % 60; document.getElementById('timer-display').innerText = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s; } document.getElementById('timer-start-btn').onclick = function() { var btn = this; if(window.indusTimer) { clearInterval(window.indusTimer); window.indusTimer = null; btn.innerText = '▶️ Start'; btn.style.background = '#6366f1'; } else { btn.innerText = '⏸️ Pause'; btn.style.background = '#eab308'; window.indusTimer = setInterval(function() { if(seconds <= 0) { clearInterval(window.indusTimer); window.indusTimer = null; btn.innerText = '▶️ Start'; alert('⏰ Time is up!'); } else { seconds--; updateDisp(); } }, 1000); } }; document.getElementById('timer-reset-btn').onclick = function() { if(window.indusTimer) { clearInterval(window.indusTimer); window.indusTimer = null; } seconds = 25 * 60; updateDisp(); document.getElementById('timer-start-btn').innerText = '▶️ Start'; document.getElementById('timer-start-btn').style.background = '#6366f1'; }; setTimeout(() => { var chat = document.getElementById('chat-container'); if(chat) chat.scrollTop = chat.scrollHeight; }, 100);"}]`;
         userMessageToAI = rawUserMessage + secretTimerRule;
     }
 
-   // 🧹 WIDGET DELETE RULE (ALL WIDGETS CLEAR)
-    else if (lowerCaseMessage.includes('delete') || lowerCaseMessage.includes('hatao') || lowerCaseMessage.includes('clear')) {
-        const secretDeleteRule = `\n\n[STRICT RULE: Reply ONLY with this exact JSON. Do not add markdown: {"action": "upgrade_ui", "feature_name": "cleanup_all_widgets", "target_element": "#chat-container", "css": "", "html": "", "js": "['upgrade-html-hardware_hologram', 'upgrade-html-indus_full_dj_inline', 'upgrade-html-study_timer_inline'].forEach(id => { let el = document.getElementById(id); if(el) el.remove(); }); if(window.holoTilt) window.removeEventListener('deviceorientation', window.holoTilt); if(window.indusAudio) window.indusAudio.pause(); if(window.indusTimer) clearInterval(window.indusTimer);", "response": "🧹 All active modules cleared successfully.Workspace reset."}]`;
-        userMessageToAI = rawUserMessage + secretDeleteRule;
-    }
-
-    // --- STEP 2: IMAGE KEYWORD CHECK ---
+    // --- STEP 2: IMAGE KEYWORD CHECK (Smarter Check) ---
     const startsWithImageCommand = lowerCaseMessage.startsWith("draw") ||
                                    lowerCaseMessage.startsWith("create a") ||
                                    lowerCaseMessage.startsWith("generate a");
     const hasHindiCombination = (lowerCaseMessage.includes("photo") || lowerCaseMessage.includes("tasveer") || lowerCaseMessage.includes("image") || lowerCaseMessage.includes("sketch")) &&
                                 (lowerCaseMessage.includes("banao") || lowerCaseMessage.includes("create") || lowerCaseMessage.includes("generate") || lowerCaseMessage.includes("dikhao") || lowerCaseMessage.includes("chahiye"));
-    const isImageRequest = createImageToggle.checked || startsWithImageCommand || hasHindiCombination;
+    
+    // 🚨 NEW LOGIC: Agar sentence mein music wale words hain toh image generate na kare!
+    const isMusicCommand = lowerCaseMessage.includes('gaana') || lowerCaseMessage.includes('gana') || lowerCaseMessage.includes('music') || lowerCaseMessage.includes('song') || lowerCaseMessage.includes('play');
+    
+    // Image banayega agar toggle ON ho, YA "tasveer banao" jaisa ho AND music ki baat NA ho rahi ho
+    const isImageRequest = (createImageToggle.checked || startsWithImageCommand || hasHindiCombination) && !isMusicCommand;
 
     // --- STEP 3: IMAGE GENERATION ---
     if (isImageRequest) {
@@ -2413,7 +2424,8 @@ chatForm.addEventListener('submit', async (e) => {
         typingIndicator.classList.add('hidden');
         toggleSendButton(false); 
     }
-});
+}); 
+ 
 // -------------------------------------------------------------------------
             chatContainer.addEventListener('click', (e) => {
                 const copyBtn = e.target.closest('.copy-btn');
