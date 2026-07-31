@@ -3,15 +3,16 @@ const axios = require('axios');
 const cors = require('cors');
 const Parser = require('rss-parser'); // RSS News ke liye
 require('dotenv').config();
-
+const ytSearch = require('yt-search');
+const play = require('play-dl'); // 👉 Naya aur sabse powerful package
 // --- Firebase Admin Setup ---
-const admin = require('firebase-admin');
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+//const admin = require('firebase-admin');
+//const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+//admin.initializeApp({
+  //credential: admin.credential.cert(serviceAccount)
+//});
+//const db = admin.firestore(); 
 
 const app = express();
 const parser = new Parser(); 
@@ -39,103 +40,31 @@ async function getGoogleNews() {
     } catch (e) { return null; }
 }
 
-// === MAIN API (OpenRouter Version) ===
-app.post('/api/generate', async (req, res) => {
-    try {
-        const { contents, systemInstruction } = req.body;
-        if (!contents) return res.status(400).json({ error: 'No contents' });
-
-        if (!OPENROUTER_API_KEY) {
-            throw new Error("🚨 Render par OPENROUTER_API_KEY nahi mili!");
-        }
-
-        const lastMessage = contents[contents.length - 1]?.parts[0]?.text?.toLowerCase() || "";
-        let finalSystemInstruction = systemInstruction?.parts[0]?.text || "";
-        let extraContext = "";
-
-        // --- 1. 🕒 TIME & DATE ---
-        if (lastMessage.includes("time") || lastMessage.includes("samay") || lastMessage.includes("date") || lastMessage.includes("tarikh")) {
-            console.log("🕒 Time Injection");
-            extraContext += `\n[SYSTEM UPDATE]: Current Date/Time in India is: ${getSystemTime()}. User ko ye time batao.`;
-        }
-
-        // --- 2. 📰 NEWS ---
-        else if (lastMessage.includes("news") || lastMessage.includes("khabar") || lastMessage.includes("samachar")) {
-            console.log("📰 RSS News Injection");
-            const newsData = await getGoogleNews();
-            if (newsData) {
-                extraContext += `\n[LATEST NEWS SUMMARY]:\n${newsData}\n(In khabron ko padhkar user ko Hinglish mein sunao. Koi link mat dena).`;
-            }
-        }
-
-        // --- 3. 🖼️ IMAGE GENERATION (Fake Response) ---
-        if (lastMessage.includes("draw") || lastMessage.includes("create") || lastMessage.includes("banao")) {
-             const fakeResponse = JSON.stringify({
-                action: "generate_image",
-                prompt: lastMessage,
-                response: "Bilkul! Tasveer bana raha hoon... 🎨"
-            });
-            return res.json({ text: fakeResponse });
-        }
-
-        if (extraContext) {
-            finalSystemInstruction += extraContext;
-        }
-
-        // --- 4. 🧠 TRANSLATOR: Gemini Format ko OpenRouter Format mein badalna ---
-        let openRouterMessages = [];
-
-        // System Prompt add kiya
-        if (finalSystemInstruction) {
-            openRouterMessages.push({ role: "system", content: finalSystemInstruction });
-        }
-
-        // Chat History add ki
-        contents.forEach(msg => {
-            const role = msg.role === 'model' ? 'assistant' : 'user';
-            const content = msg.parts && msg.parts[0] ? msg.parts[0].text : '';
-            if (content) {
-                openRouterMessages.push({ role, content });
-            }
-        });
-
-      // --- 5. 🚀 CALL OPENROUTER FREE API ---
-        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-          model: "openrouter/free", // 🔥 Yeh Hamesha chalega! Automatic best free model chunega.
-            messages: openRouterMessages
-        }, {
-            headers: {
-                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://raviai-1h96.onrender.com", 
-                "X-Title": "IndusGPT" 
-            }
-        });
-
-        const textResponse = response.data.choices[0].message.content;
-        res.json({ text: textResponse });
-
-    } catch (error) {
-        console.error('🔥 AI Error:', error.response ? error.response.data : error.message);
-        // Ab asli error frontend par jayega taaki pata chale kya galat hua
-        res.status(500).json({ error: error.response ? JSON.stringify(error.response.data) : error.message });
-    }
-});
-
-// Image API (100% Sahi hai, No changes needed)
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
-        const seed = Math.floor(Math.random() * 10000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1024&height=1024&nologo=true&model=flux`; 
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
+        const seed = Math.floor(Math.random() * 100000);
+        
+        // 🪄 MAGICAL FIX: Yahan humne "perfect anatomy" aur deformed cheezon ko rokne ke liye strict words add kiye hain
+        const superPrompt = `A real life National Geographic style photograph of ${prompt}. 
+        ultra-realistic, 8k resolution, shot on DSLR, hyper-detailed, perfect anatomy, flawless proportions, symmetrical eyes. 
+        STRICTLY AVOID AND NO: deformed, mutated, extra limbs, missing legs, bad eyes, poorly drawn, cartoon, 3d render.`;
+
+        // URL encode the prompt
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(superPrompt)}?seed=${seed}&width=1024&height=1024&nologo=true&enhance=true&model=flux-realism`; 
+        
+        console.log(`🖼️ Generating Perfect Image for: ${prompt}`);
+
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 25000 });
+        
         const base64Image = Buffer.from(response.data, 'binary').toString('base64');
         res.json({ base64Image, imageUrl });
     } catch (error) {
+        console.error("🖼️ Image Error:", error.message);
         res.status(500).json({ error: "Image Failed" });
     }
 });
-
+// ====================================================
 // ==========================================
 // 🎵 INDUS MUSIC API (APPLE MUSIC 30-SEC PREVIEW)
 // ==========================================
@@ -173,6 +102,42 @@ app.get('/api/play-music', async (req, res) => {
     }
 });
 
+// ==========================================
+// 🤖 AI CHAT API (WITH SECRET DJ INSTRUCTION)
+// ==========================================
+app.post('/api/chat', async (req, res) => {
+    try {
+        const userMessage = req.body.message;
+
+        // 👇 Yeh hai humari Secret Instruction (AI ka dimaag)
+        // 👇 Naya aur Strict System Instruction
+const systemInstruction = `You are IndusGPT, an advanced AI. 
+CRITICAL RULE: If the user asks to play music, a song, or a music player, YOU ARE STRICTLY FORBIDDEN from speaking in Hindi, English, or giving YouTube links. You must NOT say "Sure", "Here is", or "Lo bhaiya". 
+You MUST reply ONLY and EXACTLY with the raw JSON object below. Do not add markdown blocks like \`\`\`json. Just output this exact text:
+
+{"action": "upgrade_ui", "feature_name": "indus_full_dj_final", "target_element": "body", "css": "#indus-full-dj { position:fixed; bottom:20px; right:20px; background:rgba(10,10,15,0.95); border:1px solid #22c55e; padding:15px; border-radius:15px; box-shadow:0 10px 30px rgba(0,255,100,0.2); z-index:99999; display:flex; flex-direction:column; gap:10px; width:280px; backdrop-filter:blur(10px); color:white; font-family:sans-serif; transition: all 0.3s; }", "html": "<div id='indus-full-dj'><div style='display:flex; justify-content:space-between; font-weight:bold; font-size:14px; border-bottom:1px solid #334155; padding-bottom:8px;'><span style='color:#22c55e;'>🎧 Indus Full DJ</span><button onclick=\\"document.getElementById('upgrade-html-indus_full_dj_final').remove(); if(window.indusAudio) window.indusAudio.pause();\\" style='background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;'>✖</button></div><div id='dj-full-status' style='font-size:11px; color:#94a3b8; margin-top:2px;'>Search any song...</div><div style='display:flex; gap:5px; margin-top:5px;'><input id='dj-full-query' type='text' placeholder='e.g. Tum Hi Ho...' style='flex:1; padding:8px; border-radius:8px; border:none; outline:none; color:black; font-size:12px;'><button id='dj-full-btn' style='background:#22c55e; color:black; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;'>🔍 Play</button></div></div>", "js": "document.getElementById('dj-full-btn').onclick = function() { var query = document.getElementById('dj-full-query').value; if(!query) return; var btn = this; btn.innerText = '⏳...'; document.getElementById('dj-full-status').innerHTML = 'Fetching preview...'; if(window.indusAudio) window.indusAudio.pause(); window.indusAudio = new Audio('/api/play-music?song=' + encodeURIComponent(query)); window.indusAudio.play().then(() => { btn.innerText = '🔍 Play'; document.getElementById('dj-full-status').innerHTML = '🎵 <span style=\\"color:#22c55e\\">Playing Preview!</span>'; }).catch(e => { btn.innerText = '🔍 Play'; document.getElementById('dj-full-status').innerHTML = '❌ Error'; }); };"}`;
+        // API ko bhejne wala message
+        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+            model: "meta-llama/llama-3-8b-instruct:free", // Agar koi aur model use karte hain toh naam change kar lena
+            messages: [
+                { role: "system", content: systemInstruction },
+                { role: "user", content: userMessage }
+            ]
+        }, {
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        const reply = response.data.choices[0].message.content;
+        res.json({ reply: reply });
+
+    } catch (error) {
+        console.error("❌ AI Error:", error.message);
+        res.status(500).json({ error: "AI Failed" });
+    }
+});
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
