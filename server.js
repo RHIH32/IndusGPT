@@ -18,7 +18,12 @@ const app = express();
 const parser = new Parser(); 
 const port = process.env.PORT || 10000;
 
-app.use(cors());
+// Har port (jaise 5500) se request allow karne ke liye CORS fix
+app.use(cors({
+    origin: '*', // Allow all origins (development ke liye best hai)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
